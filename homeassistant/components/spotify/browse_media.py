@@ -313,38 +313,29 @@ def _build_item_browse_media(
     items = []
 
     extract_items = []
+    extract_object = []
 
     if(media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS) or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_ARTISTS) or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_TRACKS) ):
         extract_items = {media_content_type: _browsing_get_items(
             media_content_type, spotify
         )}
     elif(media_content_type == str(BrowsableMedia.CURRENT_USER_FOLLOWED_ARTISTS) or media_content_type == str(BrowsableMedia.FEATURED_PLAYLISTS) or media_content_type == str(BrowsableMedia.NEW_RELEASES) or media_content_type == str(MediaType.ALBUM) ):
-            extract_items = {media_content_type: _browsing_get_object_items(
-                media_content_type, spotify, media_content_id, user
-            )}
+        extract_items = {media_content_type: _browsing_get_object_items(
+            media_content_type, spotify, media_content_id, user
+        )}
     elif(media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_ALBUMS) or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_TRACKS) or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_SHOWS) or media_content_type == str(BrowsableMedia.CURRENT_USER_RECENTLY_PLAYED) ):
-            extract_items = {media_content_type: _browsing_get_iterable_items(
-                media_content_type, spotify
-            )}
+        extract_items = {media_content_type: _browsing_get_iterable_items(
+            media_content_type, spotify
+        )}
     elif(media_content_type == str(MediaType.PLAYLIST) ):
-            extract_items = {media_content_type: _browsing_get_playlist(
-               media_content_type, media_content_id, spotify
-            )}
+        extract_items = {media_content_type: _browsing_get_playlist(
+            media_content_type, media_content_id, spotify
+        )}
 
-    extract_object = {
-        str(BrowsableMedia.CATEGORIES): _browsing_get_objects(
+    if(media_content_type == str(BrowsableMedia.CATEGORIES) or media_content_type == str(MediaType.ARTIST) or media_content_type == str(MEDIA_TYPE_SHOW) or media_content_type == "category_playlists" ):
+        extract_object = {media_content_type: _browsing_get_objects(
             media_content_type, spotify, user, media_content_id
-        ),
-        "category_playlists": _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-        str(MediaType.ARTIST): _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-        str(MEDIA_TYPE_SHOW): _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-    }
+    )}
 
     if media_content_type in extract_items:
         media, items = extract_items[str(media_content_type)]
