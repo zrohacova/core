@@ -41,6 +41,8 @@ class BrowsableMedia(StrEnum):
     CATEGORIES = "categories"
     FEATURED_PLAYLISTS = "featured_playlists"
     NEW_RELEASES = "new_releases"
+    WEATHER_PLAYLIST = "weather_playlist"
+    DATE_PLAYLIST = "date_playlist"
 
 
 LIBRARY_MAP = {
@@ -55,6 +57,8 @@ LIBRARY_MAP = {
     BrowsableMedia.CATEGORIES.value: "Categories",
     BrowsableMedia.FEATURED_PLAYLISTS.value: "Featured Playlists",
     BrowsableMedia.NEW_RELEASES.value: "New Releases",
+    BrowsableMedia.WEATHER_PLAYLIST.value: "Weather Playlists",
+    BrowsableMedia.DATE_PLAYLIST.value: "Date Playlists",
 }
 
 CONTENT_TYPE_MEDIA_CLASS: dict[str, Any] = {
@@ -109,6 +113,14 @@ CONTENT_TYPE_MEDIA_CLASS: dict[str, Any] = {
     MediaType.PLAYLIST: {
         "parent": MediaClass.PLAYLIST,
         "children": MediaClass.TRACK,
+    },
+    BrowsableMedia.WEATHER_PLAYLIST: {
+        "parent": MediaClass.DIRECTORY,
+        "children": MediaClass.PLAYLIST,
+    },
+    BrowsableMedia.DATE_PLAYLIST: {
+        "parent": MediaClass.DIRECTORY,
+        "children": MediaClass.PLAYLIST,
     },
     MediaType.ALBUM: {"parent": MediaClass.ALBUM, "children": MediaClass.TRACK},
     MediaType.ARTIST: {"parent": MediaClass.ARTIST, "children": MediaClass.ALBUM},
@@ -312,30 +324,57 @@ def _build_item_browse_media(
     media: dict[str, Any] | None = None
     items = []
 
-    extract_items = []
-    extract_object = []
+    extract_items = {}
+    extract_object = {}
 
-    if(media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS) or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_ARTISTS) or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_TRACKS) ):
-        extract_items = {media_content_type: _browsing_get_items(
-            media_content_type, spotify
-        )}
-    elif(media_content_type == str(BrowsableMedia.CURRENT_USER_FOLLOWED_ARTISTS) or media_content_type == str(BrowsableMedia.FEATURED_PLAYLISTS) or media_content_type == str(BrowsableMedia.NEW_RELEASES) or media_content_type == str(MediaType.ALBUM) ):
-        extract_items = {media_content_type: _browsing_get_object_items(
-            media_content_type, spotify, media_content_id, user
-        )}
-    elif(media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_ALBUMS) or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_TRACKS) or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_SHOWS) or media_content_type == str(BrowsableMedia.CURRENT_USER_RECENTLY_PLAYED) ):
-        extract_items = {media_content_type: _browsing_get_iterable_items(
-            media_content_type, spotify
-        )}
-    elif(media_content_type == str(MediaType.PLAYLIST) ):
-        extract_items = {media_content_type: _browsing_get_playlist(
-            media_content_type, media_content_id, spotify
-        )}
+    if (
+        media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_ARTISTS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_TRACKS)
+    ):
+        extract_items = {
+            media_content_type: _browsing_get_items(media_content_type, spotify)
+        }
+    elif (
+        media_content_type == str(BrowsableMedia.CURRENT_USER_FOLLOWED_ARTISTS)
+        or media_content_type == str(BrowsableMedia.FEATURED_PLAYLISTS)
+        or media_content_type == str(BrowsableMedia.NEW_RELEASES)
+        or media_content_type == str(MediaType.ALBUM)
+    ):
+        extract_items = {
+            media_content_type: _browsing_get_object_items(
+                media_content_type, spotify, media_content_id, user
+            )
+        }
+    elif (
+        media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_ALBUMS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_TRACKS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_SHOWS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_RECENTLY_PLAYED)
+    ):
+        extract_items = {
+            media_content_type: _browsing_get_iterable_items(
+                media_content_type, spotify
+            )
+        }
+    elif media_content_type == str(MediaType.PLAYLIST):
+        extract_items = {
+            media_content_type: _browsing_get_playlist(
+                media_content_type, media_content_id, spotify
+            )
+        }
 
-    if(media_content_type == str(BrowsableMedia.CATEGORIES) or media_content_type == str(MediaType.ARTIST) or media_content_type == str(MEDIA_TYPE_SHOW) or media_content_type == "category_playlists" ):
-        extract_object = {media_content_type: _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-    )}
+    if (
+        media_content_type == str(BrowsableMedia.CATEGORIES)
+        or media_content_type == str(MediaType.ARTIST)
+        or media_content_type == str(MEDIA_TYPE_SHOW)
+        or media_content_type == "category_playlists"
+    ):
+        extract_object = {
+            media_content_type: _browsing_get_objects(
+                media_content_type, spotify, user, media_content_id
+            )
+        }
 
     if media_content_type in extract_items:
         media, items = extract_items[str(media_content_type)]
