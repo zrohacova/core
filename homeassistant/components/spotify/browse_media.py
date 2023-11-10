@@ -312,8 +312,8 @@ def _build_item_browse_media(
     media: dict[str, Any] | None = None # unmodified api result
     items = [] # the items in the specified media. For example, list of user playlists if the media_content_type is current_user_playlists. Extracted from "media" variable
 
-    extract_items = [] # maps the media_content_type to the api result for that media for medias that should not have an image or a title
-    extract_object = [] # maps the media_content_type to the api result for that media for medias that should have an image and a title
+    extract_items = {} # maps the media_content_type to the api result for that media for medias that should not have an image or a title
+    extract_object = {} # maps the media_content_type to the api result for that media for medias that should have an image and a title
 
     if(media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS) or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_ARTISTS) or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_TRACKS) ):
         extract_items = {media_content_type: _browsing_get_items(
