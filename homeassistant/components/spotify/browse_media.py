@@ -21,11 +21,12 @@ from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
 from .const import DOMAIN, MEDIA_PLAYER_PREFIX, MEDIA_TYPE_SHOW, PLAYABLE_MEDIA_TYPES
 from .util import fetch_image_url
 
+from .recommendation_handling import RecommendationHandling
+
 BROWSE_LIMIT = 48
 
 
 _LOGGER = logging.getLogger(__name__)
-
 
 class BrowsableMedia(StrEnum):
     """Enum of browsable media."""
@@ -379,19 +380,9 @@ def _browsing_get_items(media_content_type, spotify):
     items = []
     media: dict[str, Any] | None = None
 
-    #these three will later be global variables in recommendation_handling.py
-    last_api_call_result_weather = []
-    last_weather_search_string = "winter"
-    current_weather_search_string = "hot summer"
-
-    if media_content_type == BrowsableMedia.CURRENT_USER_PLAYLISTS: ## tried with user_playlists for now since the weather_playlists is not developet yet
-        if last_weather_search_string != current_weather_search_string:
-            if media := spotify.search(q=current_weather_search_string, type="playlist", limit=BROWSE_LIMIT):
-                items = media.get("playlists", {}).get("items", [])
-                last_api_call_result_weather = items
-                last_weather_search_string = current_weather_search_string
-        else:
-            items = last_api_call_result_weather
+    if media_content_type == BrowsableMedia.CURRENT_USER_PLAYLISTS: ## tried with user_playlists for now since the weather playlists card is not developet yet
+        _recommendation_handler = RecommendationHandling()
+        media, items = _recommendation_handler.handling_weather_recommendatios(None, spotify)
     elif media_content_type == BrowsableMedia.CURRENT_USER_TOP_ARTISTS:
         if media := spotify.current_user_top_artists(limit=BROWSE_LIMIT):
             items = media.get("items", [])
