@@ -26,7 +26,7 @@ PATHS_WITHOUT_AUTH = ("/api/tts_proxy/",)
 
 
 # convert relative URL to absolute URL
-def convert_relative_url(
+def convert_relative_url(  # noqa: D103
     hass: HomeAssistant, for_supervisor_network: bool = False
 ) -> str:
     base_url = None
@@ -93,6 +93,7 @@ def async_process_play_media_url(
         media_content_id = f"{base_url}{media_content_id}"
 
     return media_content_id
+
 
 class BrowseMedia:
     """Represent a browsable media file."""

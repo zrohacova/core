@@ -56,7 +56,7 @@ async def call_service(
     )
 
 
-async def set_source_and_sound_mode(
+async def set_source_and_sound_mode(  # noqa: D103
     hass: HomeAssistant, state: State, features: int, context: Context | None = None
 ) -> None:
     if (
