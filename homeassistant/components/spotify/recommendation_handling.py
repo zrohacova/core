@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 
 BROWSE_LIMIT = 48
 
-class RecommendationHandling:  # noqa: D101
+class RecommendationHandler:  # noqa: D101
 
     _instance = None
 
@@ -13,10 +13,10 @@ class RecommendationHandling:  # noqa: D101
 
     def __new__(cls): # singleton pattern
         if not cls._instance:
-            cls._instance = super(RecommendationHandling, cls).__new__(cls)
+            cls._instance = super(RecommendationHandler, cls).__new__(cls)
         return cls._instance
 
-    def handling_weather_recommendatios(  # noqa: D102
+    def handling_weather_recommendations(  # noqa: D102
         self, hass: HomeAssistant, spotify: Spotify
     ):  # noqa: D102
 
