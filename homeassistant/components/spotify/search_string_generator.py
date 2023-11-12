@@ -1,10 +1,10 @@
-"""Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to corresponding Spotify playlist IDs."""
+"""Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
 
 import json
 
 
 class WeatherPlaylistMapper:
-    """A class to map weather conditions and temperatures to Spotify playlist categories."""
+    """A class to map weather conditions and temperatures to a matching search string for Spotify."""
 
     # Constant for the temperature threshold
     TEMPERATURE_THRESHOLD_CELSIUS = 15
@@ -27,14 +27,14 @@ class WeatherPlaylistMapper:
             ) from e
 
     def map_weather_to_playlists(self, temperature: float, condition: str) -> str:
-        """Map the given weather condition and temperature to a Spotify playlist category ID.
+        """Map the given weather condition and temperature to an appropriate search string in Spotify.
 
         Args:
             temperature (float): The current temperature.
             condition (str): The current weather condition.
 
         Returns:
-            str: The Spotify playlist ID corresponding to the given weather condition
+            str: A Spotify search string corresponding to the given weather condition
                  and temperature.
 
         Raises:
