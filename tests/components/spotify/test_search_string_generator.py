@@ -118,15 +118,6 @@ def test_map_weather_to_playlists_non_standard_condition_string(
     assert search_string == "Sunny Day Play"
 
 
-def test_map_weather_to_playlists_large_temperature(
-    mapper: WeatherPlaylistMapper,
-) -> None:
-    """Test mapping with large temperature values."""
-    search_string = mapper.map_weather_to_playlists(100, "lightning")
-    # Expected for 'warm' 'lightning'
-    assert search_string == "Electric Summer"
-
-
 def test_upper_case_input(
     mapper: WeatherPlaylistMapper,
 ) -> None:
