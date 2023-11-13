@@ -163,7 +163,7 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return False
 
     async def create_device_entry(self, user_input):
-        """Create device entry. Return entry if it was sucessfully created, otherwise return errors."""
+        """Create device entry. Return entry if it was successfully created, otherwise return errors."""
         errors = {}
         self.region = user_input[CONF_REGION]
         self.name = user_input[CONF_NAME]

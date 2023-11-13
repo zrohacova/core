@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on: # yamllint disable-line rule:truthy
   push:
-    branches: ["dev"]
+    branches: ["dev", "zrohacova-patch-1"]
   pull_request:
     branches: ["dev"]
 
