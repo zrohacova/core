@@ -172,12 +172,14 @@ class Analytics:
             )
 
     def should_send_analytics(self) -> bool:
+        """Check if analytics should be sent."""
         if not self.onboarded or not self.preferences.get(ATTR_BASE, False):
             LOGGER.debug("Nothing to submit")
             return False
         return True
 
     async def gather_analytics_info(self):
+        """Gather analytics info."""
         supervisor_info = None
         operating_system_info: dict[str, Any] = {}
 
@@ -189,6 +191,7 @@ class Analytics:
         return system_info, supervisor_info, operating_system_info
 
     async def send_payload(self, payload):
+        """Send payload."""
         try:
             async with timeout(30):
                 response = await self.session.post(self.endpoint, json=payload)
@@ -214,6 +217,7 @@ class Analytics:
             )
 
     def prepare_payload(self, system_info, supervisor_info, operating_system_info):
+        """Prepare payload."""
         payload: dict = {
             ATTR_UUID: self.uuid,
             ATTR_VERSION: HA_VERSION,
@@ -342,6 +346,7 @@ class Analytics:
         await self.send_payload(payload)
 
     async def get_yaml_configuration(self):
+        """Try to get yaml config."""
         try:
             return await conf_util.async_hass_config_yaml(self.hass)
         except HomeAssistantError as err:
@@ -357,6 +362,7 @@ class Analytics:
         enabled_domains,
         payload,
     ):
+        """Get usage payload."""
         payload[ATTR_CERTIFICATE] = self.hass.http.ssl_certificate is not None
         payload[ATTR_INTEGRATIONS] = integrations
         payload[ATTR_CUSTOM_INTEGRATIONS] = custom_integrations
@@ -383,6 +389,7 @@ class Analytics:
     async def get_statistics_payload(
         self, supervisor_info, integrations, addons, payload
     ):
+        """Get usage payload."""
         payload[ATTR_STATE_COUNT] = len(self.hass.states.async_all())
         payload[ATTR_AUTOMATION_COUNT] = len(
             self.hass.states.async_all(AUTOMATION_DOMAIN)

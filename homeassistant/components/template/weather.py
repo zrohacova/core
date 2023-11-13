@@ -346,42 +346,42 @@ class WeatherTemplate(TemplateEntity, WeatherEntity):
             ("_forecast_twice_daily", self._forecast_twice_daily_template),
         ]
 
-        for attribute, template in templates:
+        for attribute, t in templates:
             if attribute == "_condition" and template:
                 self.add_template_attribute(
                     attribute,
-                    template,
+                    t,
                     lambda condition: condition
                     if condition in CONDITION_CLASSES
                     else None,
                 )
 
-            elif attribute == "_forecast_daily" and template:
+            elif attribute == "_forecast_daily" and t:
                 self.add_template_attribute(
                     attribute,
-                    template,
+                    t,
                     on_update=partial(self._update_forecast, "daily"),
                     validator=partial(self._validate_forecast, "daily"),
                 )
 
-            elif attribute == "_forecast_hourly" and template:
+            elif attribute == "_forecast_hourly" and t:
                 self.add_template_attribute(
                     attribute,
-                    template,
+                    t,
                     on_update=partial(self._update_forecast, "hourly"),
                     validator=partial(self._validate_forecast, "hourly"),
                 )
 
-            elif attribute == "_forecast_twice_daily" and template:
+            elif attribute == "_forecast_twice_daily" and t:
                 self.add_template_attribute(
                     attribute,
-                    template,
+                    t,
                     on_update=partial(self._update_forecast, "twice_daily"),
                     validator=partial(self._validate_forecast, "twice_daily"),
                 )
 
-            elif template:
-                self.add_template_attribute(attribute, template)
+            elif t:
+                self.add_template_attribute(attribute, t)
 
         super()._async_setup_templates()
 
