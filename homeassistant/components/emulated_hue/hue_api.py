@@ -314,7 +314,7 @@ class HueOneLightStateView(HomeAssistantView):
             return self.json_message(ENTITY_NOT_FOUND, HTTPStatus.NOT_FOUND)
 
         if (state := hass.states.get(hass_entity_id)) is None:
-            _LOGGER.error(ENTITY_NOT_FOUND + ": %s", hass_entity_id)
+            _LOGGER.error("%e : %s", ENTITY_NOT_FOUND, hass_entity_id)
             return self.json_message(ENTITY_NOT_FOUND, HTTPStatus.NOT_FOUND)
 
         if not self.config.is_state_exposed(state):
@@ -345,7 +345,7 @@ class HueOneLightChangeView(HomeAssistantView):
             _LOGGER.error("Unknown entity number: %s", entity_number)
             return self.json_message(ENTITY_NOT_FOUND, HTTPStatus.NOT_FOUND)
         if (entity := hass.states.get(entity_id)) is None:
-            _LOGGER.error(ENTITY_NOT_FOUND + ": %s", entity_id)
+            _LOGGER.error("%e : %s", ENTITY_NOT_FOUND, entity_id)
             return self.json_message(ENTITY_NOT_FOUND, HTTPStatus.NOT_FOUND)
         if not config.is_state_exposed(entity):
             _LOGGER.error("Entity not exposed: %s", entity_id)
@@ -519,6 +519,7 @@ class HueOneLightChangeView(HomeAssistantView):
     def set_data_based_on_domain(
         self, entity, parsed, data, entity_features, color_modes
     ):
+        """Set data object based on domain."""
         # Choose general HA domain
         domain = core.DOMAIN
 
@@ -605,6 +606,7 @@ class HueOneLightChangeView(HomeAssistantView):
         return [turn_on_needed, domain, service, data]
 
     def handle_light_entity(self, parsed, entity_features, data, color_modes):
+        """Handle light entity."""
         if (
             light.brightness_supported(color_modes)
             and parsed[STATE_BRIGHTNESS] is not None

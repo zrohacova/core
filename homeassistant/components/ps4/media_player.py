@@ -185,6 +185,7 @@ class PS4Device(MediaPlayerEntity):
             self.state_standby()
 
     def handle_ok_status(self, status) -> None:
+        """Handle ok status."""
         title_id = status.get("running-app-titleid")
         name = status.get("running-app-name")
 
@@ -197,6 +198,7 @@ class PS4Device(MediaPlayerEntity):
             self.idle()
 
     def update_media_attributes(self, name, title_id) -> None:
+        """Update media attributes."""
         self._attr_media_content_id = title_id
 
         if self._use_saved():
