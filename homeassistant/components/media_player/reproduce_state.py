@@ -59,6 +59,7 @@ async def call_service(
 async def set_source_and_sound_mode(
     hass: HomeAssistant, state: State, features: int, context: Context | None = None
 ) -> None:
+    """Set source and sound mode."""
     if (
         ATTR_INPUT_SOURCE in state.attributes
         and features & MediaPlayerEntityFeature.SELECT_SOURCE
