@@ -306,7 +306,7 @@ def _build_item_browse_media(
     user: dict[str, Any],
     media_content_id: str,
 ):
-    """Decides what function to call to do the api request based on what media should be browsed. Then, extracts the desired values from the api result and returns them"""
+    """Decides what function to call to do the api request based on what media should be browsed. Then, extracts the desired values from the api result and returns them."""
     title = None
     image = None
     media: dict[str, Any] | None = None # unmodified api result
