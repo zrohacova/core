@@ -125,6 +125,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def migrate_from_version1_to_version2(hass, config_entries, entry, data):
+    """Migrate from version 1 to version 2 and return version 2."""
     loc = await location.async_detect_location_info(async_get_clientsession(hass))
     if loc:
         country = COUNTRYCODE_NAMES.get(loc.country_code)
@@ -141,6 +142,7 @@ async def migrate_from_version1_to_version2(hass, config_entries, entry, data):
 
 
 def migrate_from_version2_to_version3(hass, entry, config_entries):
+    """Migrate from version 2 to version 3."""
     registry = er.async_get(hass)
 
     for entity_id, e_entry in registry.entities.items():
