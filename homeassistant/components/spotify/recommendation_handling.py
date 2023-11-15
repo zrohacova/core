@@ -11,6 +11,8 @@ class RecommendationHandler:  # noqa: D101
     _last_weather_search_string = ""
     _last_api_call_result_weather = []
 
+    _media: dict[str, Any] | None = None
+
     def __new__(cls): # singleton pattern
         if not cls._instance:
             cls._instance = super(RecommendationHandler, cls).__new__(cls)
@@ -45,7 +47,9 @@ class RecommendationHandler:  # noqa: D101
 
                 self._last_api_call_result_weather = items
                 self._last_weather_search_string = current_weather_search_string
+                self._media = media
         else:
             items = self._last_api_call_result_weather
+            media = self._media
 
         return media, items
