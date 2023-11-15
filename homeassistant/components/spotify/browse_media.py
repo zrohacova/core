@@ -19,14 +19,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.config_entry_oauth2_flow import OAuth2Session
 
 from .const import DOMAIN, MEDIA_PLAYER_PREFIX, MEDIA_TYPE_SHOW, PLAYABLE_MEDIA_TYPES
-from .util import fetch_image_url
-
 from .recommendation_handling import RecommendationHandler
+from .util import fetch_image_url
 
 BROWSE_LIMIT = 48
 
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class BrowsableMedia(StrEnum):
     """Enum of browsable media."""
@@ -238,6 +238,7 @@ async def async_browse_media_internal(
     response = await hass.async_add_executor_job(
         partial(
             build_item_response,
+            hass,
             spotify,
             current_user,
             payload,
@@ -250,6 +251,7 @@ async def async_browse_media_internal(
 
 
 def build_item_response(  # noqa: C901
+    hass: HomeAssistant,
     spotify: Spotify,
     user: dict[str, Any],
     payload: dict[str, str | None],
@@ -264,7 +266,7 @@ def build_item_response(  # noqa: C901
         return None
 
     title, image, media, items = _build_item_browse_media(
-        media_content_type, spotify, user, media_content_id
+        hass, media_content_type, spotify, user, media_content_id
     )
 
     if media is None:
@@ -314,6 +316,7 @@ def build_item_response(  # noqa: C901
 
 
 def _build_item_browse_media(
+    hass: HomeAssistant,
     media_content_type: str,
     spotify: Spotify,
     user: dict[str, Any],
@@ -371,6 +374,13 @@ def _build_item_browse_media(
             )
         }
 
+    if media_content_type == str(BrowsableMedia.WEATHER_PLAYLIST):
+        extract_items = {
+            media_content_type: RecommendationHandler().handling_weather_recommendations(
+                hass, spotify
+            )
+        }
+
     if (
         media_content_type == str(BrowsableMedia.CATEGORIES)
         or media_content_type == str(MediaType.ARTIST)
@@ -396,9 +406,13 @@ def _browsing_get_items(media_content_type, spotify):
     items = []
     media: dict[str, Any] | None = None
 
-    if media_content_type == BrowsableMedia.CURRENT_USER_PLAYLISTS: ## tried with user_playlists for now since the weather playlists card is not developet yet
+    if (
+        media_content_type == BrowsableMedia.CURRENT_USER_PLAYLISTS
+    ):  ## tried with user_playlists for now since the weather playlists card is not developet yet
         _recommendation_handler = RecommendationHandler()
-        media, items = _recommendation_handler.handling_weather_recommendations(None, spotify)
+        media, items = _recommendation_handler.handling_weather_recommendations(
+            None, spotify
+        )
     elif media_content_type == BrowsableMedia.CURRENT_USER_TOP_ARTISTS:
         if media := spotify.current_user_top_artists(limit=BROWSE_LIMIT):
             items = media.get("items", [])
