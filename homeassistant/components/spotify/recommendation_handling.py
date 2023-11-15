@@ -1,11 +1,14 @@
 """Provides handling for Spotify playlist recommendations in Home Assistant based on weather conditions and dates."""
+import logging
 from typing import Any, Optional
 
-from spotipy import Spotify
+from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
 
 BROWSE_LIMIT = 48
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class RecommendationHandler:
@@ -37,18 +40,22 @@ class RecommendationHandler:
 
         current_weather_search_string = "cold rain"
 
-        if self._last_weather_search_string != current_weather_search_string:
-            if media := spotify.search(
-                q=current_weather_search_string, type="playlist", limit=BROWSE_LIMIT
-            ):
-                items = media.get("playlists", {}).get("items", [])
+        try:
+            if self._last_weather_search_string != current_weather_search_string:
+                if media := spotify.search(
+                    q=current_weather_search_string, type="playlist", limit=BROWSE_LIMIT
+                ):
+                    items = media.get("playlists", {}).get("items", [])
 
-                self._last_api_call_result_weather = items
-                self._last_weather_search_string = current_weather_search_string
-                self._media = media
-        else:
-            items = self._last_api_call_result_weather
-            media = self._media
+                    self._last_api_call_result_weather = items
+                    self._last_weather_search_string = current_weather_search_string
+                    self._media = media
+            else:
+                items = self._last_api_call_result_weather
+                media = self._media
+        except SpotifyException:
+            # Handle Spotify API exceptions
+            _LOGGER.info("Spotify API error: {e}")
 
         return media, items
 
@@ -62,9 +69,13 @@ class RecommendationHandler:
         current_date_search_string = "winter"
 
         # Perform a Spotify playlist search with the defined query and type.
-        if media := spotify.search(
-            q=current_date_search_string, type="playlist", limit=BROWSE_LIMIT
-        ):
-            items = media.get("playlists", {}).get("items", [])
+        try:
+            if media := spotify.search(
+                q=current_date_search_string, type="playlist", limit=BROWSE_LIMIT
+            ):
+                items = media.get("playlists", {}).get("items", [])
 
+        except SpotifyException:
+            # Handle Spotify API exceptions
+            _LOGGER.info("Spotify API error: {e}")
         return media, items
