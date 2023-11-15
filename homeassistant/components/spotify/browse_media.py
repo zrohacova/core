@@ -316,10 +316,10 @@ def _build_item_browse_media(
 
     extract_items = (
         {}
-    )  # maps the media_content_type to the api result for that media for medias that should not have an image or a title
+    )  # maps the media_content_type to the api result for that media for media types that should not have an image or a title
     extract_object = (
         {}
-    )  # maps the media_content_type to the api result for that media for medias that should have an image and a title
+    )  # maps the media_content_type to the api result for that media for media types that should have an image and a title
 
     if (
         media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS)
