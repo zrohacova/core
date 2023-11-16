@@ -1,7 +1,13 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
 
+import calendar  # noqa: D100
 from datetime import date
 import json
+from typing import Any
+
+import holidays
+
+from homeassistant.util import dt as dt_util
 
 
 class WeatherPlaylistMapper:
@@ -143,3 +149,62 @@ class HolidaySeasonMapper:
             ...
 
         return season
+
+    ##############################
+
+    def get_current_season(self, current_date: date):  # noqa: D103
+        """Get current season."""
+        current_month = current_date.month
+
+        if current_month in [12, 1, 2]:
+            return "winter"
+        if current_month in [3, 4, 5]:
+            return "spring"
+        if current_month in [6, 7, 8]:
+            return "summer"
+        if current_month in [9, 10, 11]:
+            return "fall"
+
+        return "winter"
+
+    def get_current_holiday(self, user: dict[str, Any]):
+        """Get current holiday."""
+        current_date = dt_util.now().date()
+        country_code = user["country"]
+        country_holidays = getattr(holidays, country_code)()
+
+        if current_date in country_holidays:
+            return country_holidays[current_date]
+
+        return "No holiday"
+
+    def get_month(self, current_date: date):
+        """Get month as a string."""
+        current_month = current_date.month
+        try:
+            month_name = calendar.month_name[current_month]
+            return month_name
+        except IndexError:
+            return "Invalid month number."
+
+    def get_day_of_week(self, current_date: date):
+        """Get day of week as a string."""
+        current_month = current_date.month
+        current_year = current_date.year
+        current_day = current_date.day
+        try:
+            # Determine the day of the week
+            day_number = calendar.weekday(current_year, current_month, current_day)
+            day_name = calendar.day_name[day_number]
+            return day_name
+        except ValueError:
+            return "Invalid date provided."
+
+    def search_string_date(self, user: dict[str, Any]):
+        """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
+        current_date = dt_util.now().date()
+
+        if self.get_current_holiday(user) == "No holiday":
+            return f"{self.get_current_season(current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
+
+        return f"{self.get_current_holiday(user)}"
