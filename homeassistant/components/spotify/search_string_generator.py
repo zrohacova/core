@@ -3,6 +3,8 @@
 from datetime import date
 import json
 
+import geocoder
+
 
 class WeatherPlaylistMapper:
     """A class to map weather conditions and temperatures to Spotify playlist categories."""
@@ -71,26 +73,27 @@ class WeatherPlaylistMapper:
 class HolidaySeasonMapper:
     """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
 
-    # Based on the classifications made in country_location_mappings, which specifies if a country is located on the
-    # northern or southern hemisphere, or on the equator. These countries all have similar seasons.
+    def __init__(self) -> None:
+        """Initialize of the HolidaySeasonMapper."""
 
-    def __init__(self, mapping_file="country_location_mappings.json") -> None:
-        """Initialize the HolidaySeasonMapper with mappings from a file.
+        # Mapping of which months at which hemisphere corresponds to what season.
+        self.season_hemisphere_mapping = {
+            1: {"Northern": "Winter", "Southern": "Summer"},
+            2: {"Northern": "Winter", "Southern": "Summer"},
+            3: {"Northern": "Spring", "Southern": "Autumn"},
+            4: {"Northern": "Spring", "Southern": "Autumn"},
+            5: {"Northern": "Spring", "Southern": "Autumn"},
+            6: {"Northern": "Summer", "Southern": "Winter"},
+            7: {"Northern": "Summer", "Southern": "Winter"},
+            8: {"Northern": "Summer", "Southern": "Winter"},
+            9: {"Northern": "Autumn", "Southern": "Spring"},
+            10: {"Northern": "Autumn", "Southern": "Spring"},
+            11: {"Northern": "Autumn", "Southern": "Spring"},
+            12: {"Northern": "Winter", "Southern": "Summer"},
+        }
 
-        Args:
-            mapping_file (str): The path to the JSON file containing countries and their geographical location, specifying whether they are in the Northern Hemisphere, Southern Hemisphere, or on the equator.
-
-        Raises:
-            FileNotFoundError: If the mapping file is not found.
-        """
-
-        try:
-            with open(mapping_file, encoding="utf-8") as file:
-                self.country_location_mapping = json.load(file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(
-                f"The mapping file {mapping_file} was not found."
-            ) from e
+        # Mapping of the seasonal changes on the equator.
+        self.season_equator_mapping = {...}
 
     # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
     def get_holiday_or_season(self, country: str, date_param: date):
@@ -107,39 +110,48 @@ class HolidaySeasonMapper:
             FIX
         """
 
-        # Find the season in the country at given date
-        geo_location = self.country_location_mapping.get(country)
-        season = self.get_season(geo_location, date_param)
+        # Find the season in the country at given date (if no holiday was found)
+        season = self.get_season(country, date_param)
 
         return season
 
-    def get_season(self, geo_location: str, date_param: date):
+    # FIX correct error handling?
+    def get_season(self, country: str, date_param: date):
         """Get the season in the given country on the given date."""
         month = date_param.month
+        location_zone = self.locate_country_zone(country)
 
-        if month in [1, 2, 12]:
-            if geo_location == "Northern":
-                season = "Winter"
-            else:
-                season = "Summer"
-        elif month in [3, 4, 5]:
-            if geo_location == "Northern":
-                season = "Spring"
-            else:
-                season = "Autumn"
-        elif month in [6, 7, 8]:
-            if geo_location == "Northern":
-                season = "Summer"
-            else:
-                season = "Winter"
-        elif month in [9, 10, 11]:
-            if geo_location == "Northern":
-                season = "Autumn"
-            else:
-                season = "Spring"
-
-        if geo_location == "Equator":
-            # FIX: Case of the equator. There are dry and wet seasons, but otherwise not the classical seasons of winter, spring, summer, and autumn. This needs to be discussed how we should do.
+        if location_zone == "Equator":
             ...
+        else:
+            hemispheres = self.season_hemisphere_mapping.get(month)
+            if not hemispheres:
+                raise ValueError(f"Provided {month} does not exist")
+
+            season = hemispheres.get(location_zone)
+            if not season:
+                raise ValueError(f"No found season for location zone {location_zone}.")
 
         return season
+
+    # FIX correct error handling?
+    def locate_country_zone(self, country_name: str) -> str:
+        """Identify the hemisphere in which the country is located or determine if it is situated on the equator."""
+
+        location = geocoder.osm(country_name)
+
+        # FIX ERROR HANDLING IF LOCATION FROM GEOCODER ISN'T FOUND. Below should not print but raise exception
+        # if location is None or not location.ok:
+        # print(f"Location information for {country_name} not found.")
+
+        # Get the latitude from the location (country) given.
+        latitude = location.latlng[0]
+
+        if 0 < latitude <= 90:
+            hemisphere = "Northern"
+        elif -90 <= latitude < 0:
+            hemisphere = "Southern"
+        else:
+            hemisphere = "Equator"
+
+        return hemisphere

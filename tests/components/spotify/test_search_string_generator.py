@@ -163,12 +163,6 @@ def test_init_valid_season_mapper() -> None:
     assert season_holiday_mapper.season_equator_mapping is not None
 
 
-# def test_locate_hemisphere() -> None:
-#     season_holiday_mapper = HolidaySeasonMapper()
-#     hemisphere = season_holiday_mapper.locate_country_zone("175 5th Avenue NYC")
-#     assert hemisphere == "Northern"
-
-
 @patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
 def test_get_hemisphere(mock_geocoder_osm) -> None:
     """Test get accurate hemisphare based on latitude provided from mocking."""
