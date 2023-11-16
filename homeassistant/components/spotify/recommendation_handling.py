@@ -5,6 +5,7 @@ from typing import Any, Optional
 from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
 BROWSE_LIMIT = 48
 
@@ -19,8 +20,12 @@ class RecommendationHandler:
     """
 
     _instance: Optional["RecommendationHandler"] = None
+
     _last_weather_search_string: str = ""
+    _last_api_call_date: str = ""
     _last_api_call_result_weather: list[Any] = []
+    _last_api_call_result_date: list[Any] = []
+
     _media: dict[str, Any] | None = None
 
     def __new__(cls) -> "RecommendationHandler":  # singleton pattern
@@ -56,6 +61,7 @@ class RecommendationHandler:
         except SpotifyException:
             # Handle Spotify API exceptions
             _LOGGER.info("Spotify API error: {e}")
+            media = None
 
         return media, items
 
@@ -65,17 +71,37 @@ class RecommendationHandler:
         media: dict[str, Any] | None = None
 
         # Define the search query for current date
-        # FIX: Currently, search_query is a static value need to modify this once the method to fetch this value is developed
-        current_date_search_string = "winter"
+        current_date_search_string = "winter"  # FIX: This should be dynamically determined based on the current date
+        current_date = dt_util.now().date().isoformat()
 
-        # Perform a Spotify playlist search with the defined query and type.
-        try:
-            if media := spotify.search(
-                q=current_date_search_string, type="playlist", limit=BROWSE_LIMIT
-            ):
-                items = media.get("playlists", {}).get("items", [])
+        # Check if the last API call date is valid and different from the current date
+        if (
+            not self._is_valid_date(self._last_api_call_date)
+            or self._last_api_call_date != current_date
+        ):
+            try:
+                if media := spotify.search(
+                    q=current_date_search_string, type="playlist", limit=BROWSE_LIMIT
+                ):
+                    items = media.get("playlists", {}).get("items", [])
 
-        except SpotifyException:
-            # Handle Spotify API exceptions
-            _LOGGER.info("Spotify API error: {e}")
+                    self._last_api_call_result_date = items
+                    self._last_api_call_date = current_date
+                    self._media = media
+            except SpotifyException:
+                # Handle Spotify API exceptions
+                _LOGGER.info("Spotify API error: {e}")
+        else:
+            # Use cached results if the date hasn't changed and the last call date is valid
+            items = self._last_api_call_result_date
+            media = self._media
         return media, items
+
+    def _is_valid_date(self, date_str: str) -> bool:
+        """Check if a date string is in a valid format."""
+        parsed_date = dt_util.parse_date(date_str)
+        if parsed_date is None:
+            # Date parsing failed, invalid format
+            _LOGGER.warning("Invalid Date Format: %s", date_str)
+            return False
+        return True
