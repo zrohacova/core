@@ -112,12 +112,14 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is None:
             result = await self.search_existing_devices()
-            if result is not None: return result
+            if result is not None:
+                return result
 
         # Login to PS4 with user data.
         if user_input is not None:
             entry = await self.create_device_entry(user_input)
-            if entry[0]: return entry[1]
+            if entry[0]:
+                return entry[1]
             errors = entry[1]
 
         # Try to find region automatically.
@@ -137,8 +139,8 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="link", data_schema=vol.Schema(link_schema), errors=errors
         )
 
-    # Check that devices found aren't configured per account.
     def is_devices_already_configured(self):
+        """Check if devices found on this account are configured."""
         entries = self._async_current_entries()
         if entries:
             # Retrieve device data from all entries if creds match.
@@ -161,6 +163,7 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return False
 
     async def create_device_entry(self, user_input):
+        """Create device entry. Return entry if it was sucessfully created, otherwise return errors."""
         errors = {}
         self.region = user_input[CONF_REGION]
         self.name = user_input[CONF_NAME]
@@ -195,10 +198,11 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             )
         return False, errors
 
-    # Search for device.
-    # If LOCAL_UDP_PORT cannot be used, a random port will be selected.
     async def search_existing_devices(self):
-        devices = await self.hass.async_add_executor_job(self.helper.has_devices, self.m_device, LOCAL_UDP_PORT)
+        """Search for device. If LOCAL_UDP_PORT cannot be used, a random port will be selected."""
+        devices = await self.hass.async_add_executor_job(
+            self.helper.has_devices, self.m_device, LOCAL_UDP_PORT
+        )
 
         # Abort if can't find device.
         if not devices:
@@ -207,9 +211,11 @@ class PlayStation4FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         self.device_list = [device["host-ip"] for device in devices]
 
         configured = self.is_devices_already_configured()
-        if configured: return configured
+        if configured:
+            return configured
 
     def setup_user_input_form(self, default_region, regions):
+        """Create user input form."""
         link_schema = OrderedDict()
         link_schema[vol.Required(CONF_IP_ADDRESS)] = vol.In(list(self.device_list))
         link_schema[vol.Required(CONF_REGION, default=default_region)] = vol.In(
