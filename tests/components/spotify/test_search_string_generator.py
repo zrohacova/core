@@ -1,10 +1,13 @@
 """Module for testing the WeatherPlaylistMapper functionality in the Spotify integration."""
 
 import json
+from unittest.mock import patch
 
 import pytest
 
+# from homeassistant.components.spotify.search_string_generator import HolidaySeasonMapper
 from homeassistant.components.spotify.search_string_generator import (
+    HolidaySeasonMapper,
     WeatherPlaylistMapper,
 )
 
@@ -141,3 +144,32 @@ def test_condtion_including_special_characters(
     """Test failing when provided condition with special characters in it."""
     with pytest.raises(ValueError):
         mapper.map_weather_to_playlists(20, "windy?")
+
+
+# Below are test cases for the HolidaySeasonMapper
+def test_init_valid_season_mapper() -> None:
+    """Test initialization of HolidaySeasonMapper."""
+    season_holiday_mapper = HolidaySeasonMapper()
+    assert season_holiday_mapper.season_hemisphere_mapping is not None
+    assert season_holiday_mapper.season_equator_mapping is not None
+
+
+# def test_locate_hemisphere() -> None:
+#     season_holiday_mapper = HolidaySeasonMapper()
+#     hemisphere = season_holiday_mapper.locate_country_zone("175 5th Avenue NYC")
+#     assert hemisphere == "Northern"
+
+
+@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+def test_get_hemisphere(mock_geocoder_osm) -> None:
+    """Test get accurate hemisphare based on latitude provided from mocking."""
+    # Set up the mock response for geocoder.osm
+    mock_location = mock_geocoder_osm.return_value
+    mock_location.ok = True
+
+    mock_location.latlng = (50.0, 10.0)
+
+    mapper = HolidaySeasonMapper()
+    hemisphere = mapper.locate_country_zone("Sweden")
+
+    assert hemisphere == "Northern"
