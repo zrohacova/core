@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 
-async def test_singleton_pattern(hass: HomeAssistant):
+async def test_singleton_pattern(hass: HomeAssistant) -> None:
     """Test that the RecommendationHandler follows the singleton pattern."""
     handler1 = RecommendationHandler()
     handler2 = RecommendationHandler()
