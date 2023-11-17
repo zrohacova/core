@@ -174,6 +174,7 @@ class HolidaySeasonMapper:
         if calendar_holiday_state is None:
             return "No holiday"
 
+        # Get holiday attributes
         holiday = calendar_holiday_state.attributes
         start_time_holiday = holiday["start_time"]
         end_time_holiday = holiday["end_time"]
@@ -181,6 +182,7 @@ class HolidaySeasonMapper:
 
         week_before_holiday = start_time_holiday.date() - timedelta(weeks=1)
 
+        # Check if current date is in holiday range
         if week_before_holiday <= current_date <= end_time_holiday.date():
             return holiday_title
 
