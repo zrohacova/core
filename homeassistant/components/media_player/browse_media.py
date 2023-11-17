@@ -25,10 +25,10 @@ from .const import CONTENT_AUTH_EXPIRY_TIME, MediaClass, MediaType
 PATHS_WITHOUT_AUTH = ("/api/tts_proxy/",)
 
 
-# convert relative URL to absolute URL
 def convert_relative_url(
     hass: HomeAssistant, for_supervisor_network: bool = False
 ) -> str:
+    """Convert relative URL to absolute URL."""
     base_url = None
     if for_supervisor_network:
         base_url = get_supervisor_network_url(hass)
@@ -93,6 +93,7 @@ def async_process_play_media_url(
         media_content_id = f"{base_url}{media_content_id}"
 
     return media_content_id
+
 
 class BrowseMedia:
     """Represent a browsable media file."""
