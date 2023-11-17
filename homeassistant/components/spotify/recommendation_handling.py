@@ -2,10 +2,13 @@
 import logging
 from typing import Any, Optional
 
+from exceptions import HomeAssistantError
 from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+
+from .search_string_generator import WeatherPlaylistMapper
 
 BROWSE_LIMIT = 48
 
@@ -42,26 +45,49 @@ class RecommendationHandler:
         """
         items = []
         media: dict[str, Any] | None = None
+        current_weather_search_string = None
 
-        current_weather_search_string = "cold rain"
-
+        weather_entity_id = "weather.home"
+        weather_state = hass.states.get(weather_entity_id)
         try:
-            if self._last_weather_search_string != current_weather_search_string:
-                if media := spotify.search(
-                    q=current_weather_search_string, type="playlist", limit=BROWSE_LIMIT
-                ):
-                    items = media.get("playlists", {}).get("items", [])
-
-                    self._last_api_call_result_weather = items
-                    self._last_weather_search_string = current_weather_search_string
-                    self._media = media
+            if (
+                weather_state is not None
+                and "temperature" in weather_state.attributes
+                and "forecast" in weather_state.attributes
+            ):
+                current_temperature = weather_state.attributes["temperature"]
+                condition = weather_state.attributes["forecast"][0]["condition"]
+                current_weather_search_string = (
+                    WeatherPlaylistMapper().map_weather_to_playlists(
+                        current_temperature, condition
+                    )
+                )
             else:
-                items = self._last_api_call_result_weather
-                media = self._media
-        except SpotifyException:
-            # Handle Spotify API exceptions
-            _LOGGER.info("Spotify API error: {e}")
-            media = None
+                raise HomeAssistantError("Weather_state data is not available")
+
+        except (ValueError,):
+            _LOGGER.info(" search_string value error: {e}")
+        if current_weather_search_string is not None:
+            try:
+                if self._last_weather_search_string != current_weather_search_string:
+                    if media := spotify.search(
+                        q=current_weather_search_string,
+                        type="playlist",
+                        limit=BROWSE_LIMIT,
+                    ):
+                        items = media.get("playlists", {}).get("items", [])
+
+                        self._last_api_call_result_weather = items
+                        self._last_weather_search_string = current_weather_search_string
+                        self._media = media
+                else:
+                    items = self._last_api_call_result_weather
+                    media = self._media
+            except SpotifyException:
+                # Handle Spotify API exceptions
+                _LOGGER.info("Spotify API error: {e}")
+        else:
+            raise HomeAssistantError("Weather data is not available")
 
         return media, items
 
