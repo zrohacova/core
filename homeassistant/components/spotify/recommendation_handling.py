@@ -2,10 +2,10 @@
 import logging
 from typing import Any, Optional
 
-from exceptions import HomeAssistantError
 from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from .search_string_generator import WeatherPlaylistMapper
@@ -65,8 +65,9 @@ class RecommendationHandler:
             else:
                 raise HomeAssistantError("Weather_state data is not available")
 
-        except (ValueError,):
-            _LOGGER.info(" search_string value error: {e}")
+        except ValueError:
+            _LOGGER.error(" Search_string value error: {e}")
+
         if current_weather_search_string is not None:
             try:
                 if self._last_weather_search_string != current_weather_search_string:
@@ -85,7 +86,7 @@ class RecommendationHandler:
                     media = self._media
             except SpotifyException:
                 # Handle Spotify API exceptions
-                _LOGGER.info("Spotify API error: {e}")
+                _LOGGER.error("Spotify API error: {e}")
         else:
             raise HomeAssistantError("Weather data is not available")
 
@@ -116,7 +117,8 @@ class RecommendationHandler:
                     self._media = media
             except SpotifyException:
                 # Handle Spotify API exceptions
-                _LOGGER.info("Spotify API error: {e}")
+                _LOGGER.error("Spotify API error: {e}")
+
         else:
             # Use cached results if the date hasn't changed and the last call date is valid
             items = self._last_api_call_result_date
