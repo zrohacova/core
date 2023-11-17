@@ -28,3 +28,4 @@ ulid-transform==0.8.1
 voluptuous==0.13.1
 voluptuous-serialize==2.6.0
 yarl==1.9.2
+googletrans==4.0.0-rc1

@@ -1,8 +1,9 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
 
 import calendar  # noqa: D100
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import json
+from googletrans import Translator
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
@@ -86,7 +87,7 @@ class HolidaySeasonMapper:
 
         Raises:
             FileNotFoundError: If the mapping file is not found.
-        """
+
 
         try:
             with open(mapping_file, encoding="utf-8") as file:
@@ -95,6 +96,7 @@ class HolidaySeasonMapper:
             raise FileNotFoundError(
                 f"The mapping file {mapping_file} was not found."
             ) from e
+        """
 
     # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
     def get_holiday_or_season(self, country: str, date_param: date):
@@ -169,18 +171,46 @@ class HolidaySeasonMapper:
         """Check if current date is in holiday range, then return current holiday."""
         current_date = dt_util.now().date()
 
-        calendar_holiday_state = hass.states.get("calendar.holidays_in_sweden")
+        # Get holiday attributes
+        states = hass.states._states
+        calendar_holiday_state = None
+        start_time_next_holiday = None
+        holiday_title = " "
+        end_time_holiday = ""
+
+        translator = Translator()
+
+        # loop all calendars and check if it is a holiday calendar
+        for state in states:
+            if state.startswith('calendar'):
+                holiday_string = state.split(".")[1]
+                translation = translator.translate(holiday_string, dest='en')
+                if "holiday" in translation.text.lower():
+                    # get the next holiday of this calendar
+                    calendar_holiday_state = hass.states.get(state)
+                    holiday = calendar_holiday_state.as_compressed_state['a']
+                    start_time_this_holiday = holiday['start_time']
+
+                    # if no calendar has been iterated previously, this calendar holiday info is saved
+                    if start_time_next_holiday is None:
+                        start_time_next_holiday = start_time_this_holiday
+                        end_time_holiday = holiday["end_time"]
+                        holiday_title = holiday['message']
+                    else:
+                        # make the dates comparable
+                        datetime_next_holiday = datetime.strptime(start_time_next_holiday, '%Y-%m-%d %H:%M:%S')
+                        datetime_this_holiday = datetime.strptime(start_time_this_holiday, '%Y-%m-%d %H:%M:%S')
+
+                        # saves the next holiday info of this calendar if the next holiday of this calendar is sooner than the previous calendar's next holiday
+                        if datetime_this_holiday < datetime_next_holiday:
+                            start_time_next_holiday = start_time_this_holiday
+                            end_time_holiday = holiday["end_time"]
+                            holiday_title = holiday['message']
 
         if calendar_holiday_state is None:
             return "No holiday"
 
-        # Get holiday attributes
-        holiday = calendar_holiday_state.attributes
-        start_time_holiday = holiday["start_time"]
-        end_time_holiday = holiday["end_time"]
-        holiday_title = holiday["message"]
-
-        week_before_holiday = start_time_holiday.date() - timedelta(weeks=1)
+        week_before_holiday = start_time_next_holiday.date() - timedelta(weeks=1)
 
         # Check if current date is in holiday range
         if week_before_holiday <= current_date <= end_time_holiday.date():
