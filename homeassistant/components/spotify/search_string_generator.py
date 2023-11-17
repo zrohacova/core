@@ -87,7 +87,7 @@ class HolidaySeasonMapper:
 
         Raises:
             FileNotFoundError: If the mapping file is not found.
-
+        """
 
         try:
             with open(mapping_file, encoding="utf-8") as file:
@@ -96,7 +96,6 @@ class HolidaySeasonMapper:
             raise FileNotFoundError(
                 f"The mapping file {mapping_file} was not found."
             ) from e
-        """
 
     # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
     def get_holiday_or_season(self, country: str, date_param: date):
