@@ -1,12 +1,10 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
 
 import calendar  # noqa: D100
-from datetime import date
+from datetime import date, timedelta
 import json
-from typing import Any
 
-import holidays
-
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 
@@ -167,14 +165,24 @@ class HolidaySeasonMapper:
 
         return "winter"
 
-    def get_current_holiday(self, user: dict[str, Any]):
-        """Get current holiday."""
+    def get_current_holiday(self, hass: HomeAssistant):
+        """Check if current date is in holiday range, then return current holiday."""
         current_date = dt_util.now().date()
-        country_code = user["country"]
-        country_holidays = getattr(holidays, country_code)()
 
-        if current_date in country_holidays:
-            return country_holidays[current_date]
+        calendar_holiday_state = hass.states.get("calendar.holidays_in_sweden")
+
+        if calendar_holiday_state is None:
+            return "No holiday"
+
+        holiday = calendar_holiday_state.attributes
+        start_time_holiday = holiday["start_time"]
+        end_time_holiday = holiday["end_time"]
+        holiday_title = holiday["message"]
+
+        week_before_holiday = start_time_holiday.date() - timedelta(weeks=1)
+
+        if week_before_holiday <= current_date <= end_time_holiday.date():
+            return holiday_title
 
         return "No holiday"
 
@@ -200,11 +208,11 @@ class HolidaySeasonMapper:
         except ValueError:
             return "Invalid date provided."
 
-    def search_string_date(self, user: dict[str, Any]):
+    def search_string_date(self, hass: HomeAssistant):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
 
-        if self.get_current_holiday(user) == "No holiday":
+        if self.get_current_holiday(hass) == "No holiday":
             return f"{self.get_current_season(current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
 
-        return f"{self.get_current_holiday(user)}"
+        return f"{self.get_current_holiday(hass)}"
