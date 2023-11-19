@@ -115,9 +115,9 @@ class RecommendationHandler:
                     self._last_api_call_result_date = items
                     self._last_api_call_date = current_date
                     self._media = media
-            except SpotifyException:
+            except SpotifyException as e:
                 # Handle Spotify API exceptions
-                _LOGGER.error("Spotify API error: {e}")
+                _LOGGER.error("Spotify API error: %s", e)
 
         else:
             # Use cached results if the date hasn't changed and the last call date is valid
