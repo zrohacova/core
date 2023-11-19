@@ -1,8 +1,9 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
 
 import calendar  # noqa: D100
-from datetime import date, timedelta, datetime
+from datetime import date, datetime, timedelta
 import json
+
 from googletrans import Translator
 
 from homeassistant.core import HomeAssistant
@@ -181,30 +182,34 @@ class HolidaySeasonMapper:
 
         # loop all calendars and check if it is a holiday calendar
         for state in states:
-            if state.startswith('calendar'):
+            if state.startswith("calendar"):
                 holiday_string = state.split(".")[1]
-                translation = translator.translate(holiday_string, dest='en')
+                translation = translator.translate(holiday_string, dest="en")
                 if "holiday" in translation.text.lower():
                     # get the next holiday of this calendar
                     calendar_holiday_state = hass.states.get(state)
-                    holiday = calendar_holiday_state.as_compressed_state['a']
-                    start_time_this_holiday = holiday['start_time']
+                    holiday = calendar_holiday_state.as_compressed_state["a"]
+                    start_time_this_holiday = holiday["start_time"]
 
                     # if no calendar has been iterated previously, this calendar holiday info is saved
                     if start_time_next_holiday is None:
                         start_time_next_holiday = start_time_this_holiday
                         end_time_holiday = holiday["end_time"]
-                        holiday_title = holiday['message']
+                        holiday_title = holiday["message"]
                     else:
                         # make the dates comparable
-                        datetime_next_holiday = datetime.strptime(start_time_next_holiday, '%Y-%m-%d %H:%M:%S')
-                        datetime_this_holiday = datetime.strptime(start_time_this_holiday, '%Y-%m-%d %H:%M:%S')
+                        datetime_next_holiday = datetime.strptime(
+                            start_time_next_holiday, "%Y-%m-%d %H:%M:%S"
+                        )
+                        datetime_this_holiday = datetime.strptime(
+                            start_time_this_holiday, "%Y-%m-%d %H:%M:%S"
+                        )
 
                         # saves the next holiday info of this calendar if the next holiday of this calendar is sooner than the previous calendar's next holiday
                         if datetime_this_holiday < datetime_next_holiday:
                             start_time_next_holiday = start_time_this_holiday
                             end_time_holiday = holiday["end_time"]
-                            holiday_title = holiday['message']
+                            holiday_title = holiday["message"]
 
         if calendar_holiday_state is None:
             return "No holiday"
