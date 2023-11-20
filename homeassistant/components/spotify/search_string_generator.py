@@ -1,5 +1,6 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to corresponding Spotify playlist IDs."""
 
+import contextlib
 from datetime import date
 import json
 
@@ -96,12 +97,12 @@ class HolidaySeasonMapper:
         self.season_equator_mapping = {...}
 
     # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
-    def get_holiday_or_season(self, country: str, date_param: date):
+    def get_holiday_or_season(self, country: str, current_date: date):
         """Get the holiday in the country for the specified date. If there is no holiday in the given country on that date, the season is retrieved.
 
         Args:
             country (str): The country to find the holiday or season for.
-            date_param (FIX): The current date.
+            current_date (FIX): The current date.
 
         Returns:
             str: The holiday for the given date in the given country, or the season based on the date and country if there is no holiday.
@@ -111,19 +112,23 @@ class HolidaySeasonMapper:
         """
 
         # Find the season in the country at given date (if no holiday was found)
-        season = self.get_season(country, date_param)
+        season = self.get_season(country, current_date)
 
         return season
 
-    # FIX correct error handling?
-    def get_season(self, country: str, date_param: date):
+    # FIX correct error handling? Need to catch exceptions?
+    # FIX The country code will be given, not the country name!!
+    def get_season(self, country: str, current_date: date):
         """Get the season in the given country on the given date."""
-        month = date_param.month
+        month = current_date.month
+
+        # FIX: Does this method need to catch exceptions because of this? How?
         location_zone = self.locate_country_zone(country)
 
         if location_zone == "Equator":
             ...
         else:
+            # FIX: Unnecessairy check?
             hemispheres = self.season_hemisphere_mapping.get(month)
             if not hemispheres:
                 raise ValueError(f"Provided {month} does not exist")
@@ -134,15 +139,18 @@ class HolidaySeasonMapper:
 
         return season
 
-    # FIX correct error handling?
     def locate_country_zone(self, country_name: str) -> str:
         """Identify the hemisphere in which the country is located or determine if it is situated on the equator."""
 
-        location = geocoder.osm(country_name)
+        # FIX correct error handling?
+        # - can't connect to server
+        with contextlib.suppress(geocoder.RequestException):
+            location = geocoder.osm(country_name)
 
-        # FIX ERROR HANDLING IF LOCATION FROM GEOCODER ISN'T FOUND. Below should not print but raise exception
-        # if location is None or not location.ok:
-        # print(f"Location information for {country_name} not found.")
+        # try:
+        #     location = geocoder.osm(country_name)
+        # except geocoder.RequestException as e:
+        #     print(f"Request Exception: {e}")
 
         # Get the latitude from the location (country) given.
         latitude = location.latlng[0]
@@ -151,7 +159,9 @@ class HolidaySeasonMapper:
             hemisphere = "Northern"
         elif -90 <= latitude < 0:
             hemisphere = "Southern"
-        else:
+        elif latitude == 0:
             hemisphere = "Equator"
+        else:
+            raise ValueError(f"No result found for the latitude {latitude}.")
 
         return hemisphere
