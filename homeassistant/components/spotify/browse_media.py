@@ -386,6 +386,17 @@ def _build_item_browse_media(
             )
         }
 
+    if media_content_type == str(BrowsableMedia.WEATHER_PLAYLIST):
+        extract_items = {
+            media_content_type: RecommendationHandler().handling_weather_recommendations(
+                hass, spotify
+            )
+        }
+
+    if media_content_type == str(BrowsableMedia.DATE_PLAYLIST):
+        # connect with  recommendation handling here
+        pass
+
     if media_content_type in extract_items:
         media, items = extract_items[str(media_content_type)]
     elif media_content_type in extract_object:
