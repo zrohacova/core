@@ -88,18 +88,28 @@ class RecommendationHandler:
                 # Handle Spotify API exceptions
                 _LOGGER.error("Spotify API error: {e}")
         else:
-            raise HomeAssistantError("Weather data is not available")
-
+            raise HomeAssistantError(
+                "Oops! It looks like you haven't set up a weather integration yet. Please connect a weather integration in the settings."
+            )
         return media, items
 
     def handling_date_recommendations(self, hass: HomeAssistant, spotify: Spotify):
         """Fetch Spotify playlists for date-based recommendations using a predefined query."""
         items = []
         media: dict[str, Any] | None = None
+        current_date_search_string = None
 
-        # Define the search query for current date
-        current_date_search_string = "winter"  # FIX: This should be dynamically determined based on the current date
-        current_date = dt_util.now().date().isoformat()
+        try:
+            # Define the search query for current date
+            current_date_search_string = "winter"  # FIX: This should be dynamically determined based on the current date
+            current_date = dt_util.now().date().isoformat()
+        except ValueError as e:
+            _LOGGER.error("Date_Search_String or Current_Date value error: %s", e)
+
+        if current_date_search_string is None:
+            raise HomeAssistantError(
+                "Oops! It looks like you haven't set up a calendar integration yet. Please connect a calendar integration in the settings."
+            )
 
         # Check if the last API call date is valid and different from the current date
         if (
