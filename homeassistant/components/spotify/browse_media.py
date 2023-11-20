@@ -307,65 +307,69 @@ def _build_item_browse_media(
     user: dict[str, Any],
     media_content_id: str,
 ):
-    """Create media."""
+    """Decides what function to call to do the api request based on what media should be browsed. Then, extracts the desired values from the api result and returns them."""
     title = None
     image = None
-    media: dict[str, Any] | None = None
-    items = []
+    media: dict[str, Any] | None = None  # unmodified api result
+    items = (
+        []
+    )  # the items in the specified media. For example, list of user playlists if the media_content_type is current_user_playlists. Extracted from "media" variable
 
-    extract_items = {
-        str(BrowsableMedia.CURRENT_USER_PLAYLISTS): _browsing_get_items(
-            media_content_type, spotify
-        ),
-        str(BrowsableMedia.CURRENT_USER_TOP_ARTISTS): _browsing_get_items(
-            media_content_type, spotify
-        ),
-        str(BrowsableMedia.CURRENT_USER_TOP_TRACKS): _browsing_get_items(
-            media_content_type, spotify
-        ),
-        str(BrowsableMedia.CURRENT_USER_FOLLOWED_ARTISTS): _browsing_get_object_items(
-            media_content_type, spotify, media_content_id, user
-        ),
-        str(BrowsableMedia.FEATURED_PLAYLISTS): _browsing_get_object_items(
-            media_content_type, spotify, media_content_id, user
-        ),
-        str(BrowsableMedia.NEW_RELEASES): _browsing_get_object_items(
-            media_content_type, spotify, media_content_id, user
-        ),
-        str(MediaType.ALBUM): _browsing_get_object_items(
-            media_content_type, spotify, media_content_id, user
-        ),
-        str(BrowsableMedia.CURRENT_USER_SAVED_ALBUMS): _browsing_get_iterable_items(
-            media_content_type, spotify
-        ),
-        str(BrowsableMedia.CURRENT_USER_SAVED_TRACKS): _browsing_get_iterable_items(
-            media_content_type, spotify
-        ),
-        str(BrowsableMedia.CURRENT_USER_SAVED_SHOWS): _browsing_get_iterable_items(
-            media_content_type, spotify
-        ),
-        str(BrowsableMedia.CURRENT_USER_RECENTLY_PLAYED): _browsing_get_iterable_items(
-            media_content_type, spotify
-        ),
-        str(MediaType.PLAYLIST): _browsing_get_playlist(
-            media_content_type, media_content_id, spotify
-        ),
-    }
+    extract_items = (
+        {}
+    )  # maps the media_content_type to the api result for that media for media types that should not have an image or a title
+    extract_object = (
+        {}
+    )  # maps the media_content_type to the api result for that media for media types that should have an image and a title
 
-    extract_object = {
-        str(BrowsableMedia.CATEGORIES): _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-        "category_playlists": _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-        str(MediaType.ARTIST): _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-        str(MEDIA_TYPE_SHOW): _browsing_get_objects(
-            media_content_type, spotify, user, media_content_id
-        ),
-    }
+    if (
+        media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_ARTISTS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_TOP_TRACKS)
+    ):
+        extract_items = {
+            media_content_type: _browsing_get_items(media_content_type, spotify)
+        }
+    elif (
+        media_content_type == str(BrowsableMedia.CURRENT_USER_FOLLOWED_ARTISTS)
+        or media_content_type == str(BrowsableMedia.FEATURED_PLAYLISTS)
+        or media_content_type == str(BrowsableMedia.NEW_RELEASES)
+        or media_content_type == str(MediaType.ALBUM)
+    ):
+        extract_items = {
+            media_content_type: _browsing_get_object_items(
+                media_content_type, spotify, media_content_id, user
+            )
+        }
+    elif (
+        media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_ALBUMS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_TRACKS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_SAVED_SHOWS)
+        or media_content_type == str(BrowsableMedia.CURRENT_USER_RECENTLY_PLAYED)
+    ):
+        extract_items = {
+            media_content_type: _browsing_get_iterable_items(
+                media_content_type, spotify
+            )
+        }
+    elif media_content_type == str(MediaType.PLAYLIST):
+        extract_items = {
+            media_content_type: _browsing_get_playlist(
+                media_content_type, media_content_id, spotify
+            )
+        }
+
+    if (
+        media_content_type == str(BrowsableMedia.CATEGORIES)
+        or media_content_type == str(MediaType.ARTIST)
+        or media_content_type == str(MEDIA_TYPE_SHOW)
+        or media_content_type == "category_playlists"
+    ):
+        extract_object = {
+            media_content_type: _browsing_get_objects(
+                media_content_type, spotify, user, media_content_id
+            )
+        }
 
     if media_content_type in extract_items:
         media, items = extract_items[str(media_content_type)]
@@ -502,7 +506,6 @@ def _make_media_children(items):
         try:
             item_id = item["id"]
         except KeyError:
-            _LOGGER.debug("Missing ID for media item: %s", item)
             _LOGGER.debug("Missing ID for media item: %s", item)
             continue
         children.append(

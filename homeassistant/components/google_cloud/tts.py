@@ -3,7 +3,7 @@ import asyncio
 import logging
 import os
 
-from google.cloud import texttospeech
+from google.cloud import texttospeech  # pylint: disable = no-name-in-module
 import voluptuous as vol
 
 from homeassistant.components.tts import CONF_LANG, PLATFORM_SCHEMA, Provider
