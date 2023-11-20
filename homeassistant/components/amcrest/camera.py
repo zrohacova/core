@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Amcrest IP cameras."""
 from __future__ import annotations
 

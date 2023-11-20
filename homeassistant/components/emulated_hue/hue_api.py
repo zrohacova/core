@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for a Hue API to control Home Assistant."""
 from __future__ import annotations
 

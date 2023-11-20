@@ -332,10 +332,10 @@ def _build_item_browse_media(
 
     extract_items = (
         {}
-    )  # maps the media_content_type to the api result for that media for media that should not have an image or a title
+    )  # maps the media_content_type to the api result for that media for media types that should not have an image or a title
     extract_object = (
         {}
-    )  # maps the media_content_type to the api result for that media for media that should have an image and a title
+    )  # maps the media_content_type to the api result for that media for media types that should have an image and a title
 
     if (
         media_content_type == str(BrowsableMedia.CURRENT_USER_PLAYLISTS)
@@ -371,13 +371,6 @@ def _build_item_browse_media(
         extract_items = {
             media_content_type: _browsing_get_playlist(
                 media_content_type, media_content_id, spotify
-            )
-        }
-
-    if media_content_type == str(BrowsableMedia.WEATHER_PLAYLIST):
-        extract_items = {
-            media_content_type: RecommendationHandler().handling_weather_recommendations(
-                hass, spotify
             )
         }
 
@@ -528,7 +521,6 @@ def _make_media_children(items):
         try:
             item_id = item["id"]
         except KeyError:
-            _LOGGER.debug("Missing ID for media item: %s", item)
             _LOGGER.debug("Missing ID for media item: %s", item)
             continue
         children.append(

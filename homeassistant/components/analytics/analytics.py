@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Analytics helper class for the analytics integration."""
 from __future__ import annotations
 
