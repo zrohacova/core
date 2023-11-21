@@ -93,44 +93,53 @@ class RecommendationHandler:
             )
         return media, items
 
-    def handling_date_recommendations(self, hass: HomeAssistant, spotify: Spotify):
-        """Fetch Spotify playlists for date-based recommendations using a predefined query."""
-        items = []
-        media: dict[str, Any] | None = None
-        current_date_search_string = None
-
+    def handling_date_recommendations(
+        self, hass: HomeAssistant, spotify: Spotify
+    ) -> tuple[Optional[dict[str, Any]], list]:
+        """Fetch Spotify playlists for date-based recommendations."""
         try:
-            # Define the search query for current date
-            current_date_search_string = "winter"  # FIX: This should be dynamically determined based on the current date
+            current_date_search_string = self._generate_date_search_string()
             current_date = dt_util.now().date().isoformat()
-        except ValueError as e:
-            _LOGGER.error("Date_Search_String or Current_Date value error: %s", e)
 
-        if current_date_search_string is None:
+            if self._is_new_date(current_date):
+                return self._fetch_spotify_playlists(
+                    spotify, current_date_search_string, current_date
+                )
+            return self._media, self._last_api_call_result_date
+
+        except HomeAssistantError as e:
+            _LOGGER.error("Home Assistant error: %s", e)
+            raise
+        except SpotifyException as e:
+            _LOGGER.error("Spotify API error: %s", e)
+            raise
+
+    def _generate_date_search_string(self) -> str:
+        # Implement logic to dynamically generate the search string based on the current date
+        search_string = "winter"
+
+        if search_string is None:
             raise HomeAssistantError(
-                "Oops! It looks like you haven't set up a calendar integration yet. Please connect a calendar integration in the settings."
+                "Oops! It looks like you haven't set up a calendar integration yet. "
+                "Please connect a calendar integration in the settings."
             )
 
-        # Check if the last API call date is valid and different from the current date
-        if (
+        return search_string
+
+    def _is_new_date(self, current_date: str) -> bool:
+        return (
             dt_util.parse_date(self._last_api_call_date) is None
             or self._last_api_call_date != current_date
-        ):
-            try:
-                if media := spotify.search(
-                    q=current_date_search_string, type="playlist", limit=BROWSE_LIMIT
-                ):
-                    items = media.get("playlists", {}).get("items", [])
+        )
 
-                    self._last_api_call_result_date = items
-                    self._last_api_call_date = current_date
-                    self._media = media
-            except SpotifyException as e:
-                # Handle Spotify API exceptions
-                _LOGGER.error("Spotify API error: %s", e)
+    def _fetch_spotify_playlists(
+        self, spotify: Spotify, search_string: str, current_date: str
+    ) -> tuple[Optional[dict[str, Any]], list]:
+        media = spotify.search(q=search_string, type="playlist", limit=BROWSE_LIMIT)
+        items = media.get("playlists", {}).get("items", [])
 
-        else:
-            # Use cached results if the date hasn't changed and the last call date is valid
-            items = self._last_api_call_result_date
-            media = self._media
+        self._last_api_call_result_date = items
+        self._last_api_call_date = current_date
+        self._media = media
+
         return media, items
