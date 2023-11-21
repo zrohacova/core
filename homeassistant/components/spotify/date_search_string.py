@@ -2,6 +2,7 @@
 import calendar
 import contextlib
 from datetime import date, timedelta
+from typing import Any
 
 import geocoder
 
@@ -34,26 +35,6 @@ class HolidayDateMapper:
 
         # Mapping of the seasonal changes on the equator.
         self.season_equator_mapping = {...}
-
-    # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
-    def get_holiday_or_season(self, country: str, current_date: date):
-        """Get the holiday in the country for the specified date. If there is no holiday in the given country on that date, the season is retrieved.
-
-        Args:
-            country (str): The country to find the holiday or season for.
-            current_date (FIX): The current date.
-
-        Returns:
-            str: The holiday for the given date in the given country, or the season based on the date and country if there is no holiday.
-
-        Raises:
-            FIX
-        """
-
-        # Find the season in the country at given date (if no holiday was found)
-        season = self.get_season(country, current_date)
-
-        return season
 
     # FIX correct error handling? Need to catch exceptions?
     # FIX The country code will be given, not the country name!!
@@ -104,23 +85,6 @@ class HolidayDateMapper:
             raise ValueError(f"No result found for the latitude {latitude}.")
 
         return hemisphere
-
-    ##############################
-
-    def get_current_season(self, current_date: date):  # noqa: D103
-        """Get current season."""
-        current_month = current_date.month
-
-        if current_month in [12, 1, 2]:
-            return "winter"
-        if current_month in [3, 4, 5]:
-            return "spring"
-        if current_month in [6, 7, 8]:
-            return "summer"
-        if current_month in [9, 10, 11]:
-            return "fall"
-
-        return "winter"
 
     def get_current_holiday(self, hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
@@ -199,11 +163,12 @@ class HolidayDateMapper:
         except ValueError:
             return "Invalid date provided."
 
-    def search_string_date(self, hass: HomeAssistant):
+    def search_string_date(self, hass: HomeAssistant, user: Any):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
+        country = user["country"]
 
         if self.get_current_holiday(hass) == "No holiday":
-            return f"{self.get_current_season(current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
+            return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
 
         return f"{self.get_current_holiday(hass)}"
