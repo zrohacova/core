@@ -1,4 +1,4 @@
-"""Contains HolidayDateMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
+"""Contains HolidayDateMapper class, which provides functionality to map current holiday if there is one in the range of a week, otherwise to map current day, month and season to an appropriate search string to be entered in Spotify."""
 import calendar
 import contextlib
 from datetime import date, timedelta
