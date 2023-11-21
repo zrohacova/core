@@ -10,6 +10,7 @@ from homeassistant.util import dt as dt_util
 
 from .search_string_generator import WeatherPlaylistMapper
 
+# Limit the number of items fetched from Spotify
 BROWSE_LIMIT = 48
 
 _LOGGER = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class RecommendationHandler:
 
     _instance: Optional["RecommendationHandler"] = None
 
+    # Variables for caching API call results and search strings
     _last_weather_search_string: str = ""
     _last_api_call_date: str = ""
     _last_api_call_result_weather: list[Any] = []
@@ -99,9 +101,11 @@ class RecommendationHandler:
         """Fetch Spotify playlists for date-based recommendations."""
 
         try:
+            # Generate a search string based on the current date
             current_date_search_string = self._generate_date_search_string()
             current_date = dt_util.now().date().isoformat()
 
+            # Fetch playlists if the date has changed since the last API call or issue with previous API call
             if self._is_new_date(current_date):
                 return self._fetch_spotify_playlists(
                     spotify, current_date_search_string, current_date
@@ -117,6 +121,10 @@ class RecommendationHandler:
             raise HomeAssistantError(
                 "There was an issue connecting to Spotify. Please try again later."
             ) from e
+        except ValueError as e:
+            _LOGGER.error("Value error encountered: %s", e)
+
+        return None, []
 
     def _generate_date_search_string(self) -> str:
         """Generate a search string based on the current date."""
@@ -148,6 +156,10 @@ class RecommendationHandler:
         media = spotify.search(q=search_string, type="playlist", limit=BROWSE_LIMIT)
         items = media.get("playlists", {}).get("items", [])
 
+        # Limit the number of items to BROWSE_LIMIT
+        if len(items) > BROWSE_LIMIT:
+            items = items[:BROWSE_LIMIT]
+
         if not items:
             _LOGGER.error(
                 "No playlists found for the given search string: %s", search_string
@@ -156,6 +168,7 @@ class RecommendationHandler:
                 "There was an issue with fetching the playlists from spotify for current date. Please check back later."
             )
 
+        # Update cache with the latest API call results
         self._last_api_call_result_date = items
         self._last_api_call_date = current_date
         self._media = media
