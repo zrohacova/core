@@ -26,6 +26,7 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
         8: ["categories", "Categories"],
         9: ["featured_playlists", "Featured Playlists"],
         10: ["new_releases", "New Releases"],
+        11: ["weather_playlist", "Weather Playlists"],
     }
 
     with patch("homeassistant.components.spotify.config_flow.Spotify") as spotify_mock:
@@ -45,7 +46,7 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
             }
 
             media: BrowseMedia = build_item_response(
-                spotify_mock, user, payload, can_play_artist=can_play_artist
+                hass, spotify_mock, user, payload, can_play_artist=can_play_artist
             )
 
             assert media

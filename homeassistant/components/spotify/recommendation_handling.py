@@ -6,6 +6,7 @@ from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .search_string_generator import WeatherPlaylistMapper
@@ -55,10 +56,10 @@ class RecommendationHandler:
             if (
                 weather_state is not None
                 and "temperature" in weather_state.attributes
-                and "forecast" in weather_state.attributes
+                and weather_state.state is not None
             ):
                 current_temperature = weather_state.attributes["temperature"]
-                condition = weather_state.attributes["forecast"][0]["condition"]
+                condition = weather_state.state
                 current_weather_search_string = (
                     WeatherPlaylistMapper().map_weather_to_playlists(
                         current_temperature, condition
@@ -174,3 +175,13 @@ class RecommendationHandler:
         self._media = media
 
         return media, items
+
+    @staticmethod
+    def _get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+        """Retrieve entity id's for connected integrations in the given domain."""
+        entity_reg = er.async_get(hass)
+        return [
+            entity.entity_id
+            for entity in entity_reg.entities.values()
+            if entity.domain == domain
+        ]

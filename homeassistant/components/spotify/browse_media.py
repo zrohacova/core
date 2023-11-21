@@ -42,6 +42,8 @@ class BrowsableMedia(StrEnum):
     CATEGORIES = "categories"
     FEATURED_PLAYLISTS = "featured_playlists"
     NEW_RELEASES = "new_releases"
+    WEATHER_PLAYLIST = "weather_playlist"
+    DATE_PLAYLIST = "date_playlist"
 
 
 LIBRARY_MAP = {
@@ -56,6 +58,8 @@ LIBRARY_MAP = {
     BrowsableMedia.CATEGORIES.value: "Categories",
     BrowsableMedia.FEATURED_PLAYLISTS.value: "Featured Playlists",
     BrowsableMedia.NEW_RELEASES.value: "New Releases",
+    BrowsableMedia.WEATHER_PLAYLIST.value: "Weather Playlists",
+    BrowsableMedia.DATE_PLAYLIST.value: "Date Playlists",
 }
 
 CONTENT_TYPE_MEDIA_CLASS: dict[str, Any] = {
@@ -110,6 +114,14 @@ CONTENT_TYPE_MEDIA_CLASS: dict[str, Any] = {
     MediaType.PLAYLIST: {
         "parent": MediaClass.PLAYLIST,
         "children": MediaClass.TRACK,
+    },
+    BrowsableMedia.WEATHER_PLAYLIST: {
+        "parent": MediaClass.DIRECTORY,
+        "children": MediaClass.PLAYLIST,
+    },
+    BrowsableMedia.DATE_PLAYLIST: {
+        "parent": MediaClass.DIRECTORY,
+        "children": MediaClass.PLAYLIST,
     },
     MediaType.ALBUM: {"parent": MediaClass.ALBUM, "children": MediaClass.TRACK},
     MediaType.ARTIST: {"parent": MediaClass.ARTIST, "children": MediaClass.ALBUM},
@@ -226,6 +238,7 @@ async def async_browse_media_internal(
     response = await hass.async_add_executor_job(
         partial(
             build_item_response,
+            hass,
             spotify,
             current_user,
             payload,
@@ -238,6 +251,7 @@ async def async_browse_media_internal(
 
 
 def build_item_response(  # noqa: C901
+    hass: HomeAssistant,
     spotify: Spotify,
     user: dict[str, Any],
     payload: dict[str, str | None],
@@ -252,7 +266,7 @@ def build_item_response(  # noqa: C901
         return None
 
     title, image, media, items = _build_item_browse_media(
-        media_content_type, spotify, user, media_content_id
+        hass, media_content_type, spotify, user, media_content_id
     )
 
     if media is None:
@@ -302,6 +316,7 @@ def build_item_response(  # noqa: C901
 
 
 def _build_item_browse_media(
+    hass: HomeAssistant,
     media_content_type: str,
     spotify: Spotify,
     user: dict[str, Any],
@@ -356,6 +371,13 @@ def _build_item_browse_media(
         extract_items = {
             media_content_type: _browsing_get_playlist(
                 media_content_type, media_content_id, spotify
+            )
+        }
+
+    if media_content_type == str(BrowsableMedia.WEATHER_PLAYLIST):
+        extract_items = {
+            media_content_type: RecommendationHandler().handling_weather_recommendations(
+                hass, spotify
             )
         }
 
