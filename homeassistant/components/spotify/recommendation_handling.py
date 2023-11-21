@@ -53,10 +53,10 @@ class RecommendationHandler:
             if (
                 weather_state is not None
                 and "temperature" in weather_state.attributes
-                and "forecast" in weather_state.attributes
+                and weather_state.state is not None
             ):
                 current_temperature = weather_state.attributes["temperature"]
-                condition = weather_state.attributes["forecast"][0]["condition"]
+                condition = weather_state.state
                 current_weather_search_string = (
                     WeatherPlaylistMapper().map_weather_to_playlists(
                         current_temperature, condition
