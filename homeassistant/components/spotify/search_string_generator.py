@@ -1,11 +1,12 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
-
 import calendar  # noqa: D100
-from datetime import date, datetime, timedelta
+import contextlib
+from datetime import date, timedelta
 import json
 
-from googletrans import Translator
+import geocoder
 
+# from googletrans import Translator
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -77,34 +78,35 @@ class WeatherPlaylistMapper:
 class HolidaySeasonMapper:
     """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
 
-    # Based on the classifications made in country_location_mappings, which specifies if a country is located on the
-    # northern or southern hemisphere, or on the equator. These countries all have similar seasons.
+    def __init__(self) -> None:
+        """Initialize of the HolidaySeasonMapper."""
 
-    def __init__(self, mapping_file="country_location_mappings.json") -> None:
-        """Initialize the HolidaySeasonMapper with mappings from a file.
+        # Mapping of which months at which hemisphere corresponds to what season.
+        self.season_hemisphere_mapping = {
+            1: {"Northern": "Winter", "Southern": "Summer"},
+            2: {"Northern": "Winter", "Southern": "Summer"},
+            3: {"Northern": "Spring", "Southern": "Autumn"},
+            4: {"Northern": "Spring", "Southern": "Autumn"},
+            5: {"Northern": "Spring", "Southern": "Autumn"},
+            6: {"Northern": "Summer", "Southern": "Winter"},
+            7: {"Northern": "Summer", "Southern": "Winter"},
+            8: {"Northern": "Summer", "Southern": "Winter"},
+            9: {"Northern": "Autumn", "Southern": "Spring"},
+            10: {"Northern": "Autumn", "Southern": "Spring"},
+            11: {"Northern": "Autumn", "Southern": "Spring"},
+            12: {"Northern": "Winter", "Southern": "Summer"},
+        }
 
-        Args:
-            mapping_file (str): The path to the JSON file containing countries and their geographical location, specifying whether they are in the Northern Hemisphere, Southern Hemisphere, or on the equator.
-
-        Raises:
-            FileNotFoundError: If the mapping file is not found.
-        """
-
-        try:
-            with open(mapping_file, encoding="utf-8") as file:
-                self.country_location_mapping = json.load(file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(
-                f"The mapping file {mapping_file} was not found."
-            ) from e
+        # Mapping of the seasonal changes on the equator.
+        self.season_equator_mapping = {...}
 
     # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
-    def get_holiday_or_season(self, country: str, date_param: date):
+    def get_holiday_or_season(self, country: str, current_date: date):
         """Get the holiday in the country for the specified date. If there is no holiday in the given country on that date, the season is retrieved.
 
         Args:
             country (str): The country to find the holiday or season for.
-            date_param (FIX): The current date.
+            current_date (FIX): The current date.
 
         Returns:
             str: The holiday for the given date in the given country, or the season based on the date and country if there is no holiday.
@@ -113,42 +115,60 @@ class HolidaySeasonMapper:
             FIX
         """
 
-        # Find the season in the country at given date
-        geo_location = self.country_location_mapping.get(country)
-        season = self.get_season(geo_location, date_param)
+        # Find the season in the country at given date (if no holiday was found)
+        season = self.get_season(country, current_date)
 
         return season
 
-    def get_season(self, geo_location: str, date_param: date):
+    # FIX correct error handling? Need to catch exceptions?
+    # FIX The country code will be given, not the country name!!
+    def get_season(self, country: str, current_date: date):
         """Get the season in the given country on the given date."""
-        month = date_param.month
+        month = current_date.month
 
-        if month in [1, 2, 12]:
-            if geo_location == "Northern":
-                season = "Winter"
-            else:
-                season = "Summer"
-        elif month in [3, 4, 5]:
-            if geo_location == "Northern":
-                season = "Spring"
-            else:
-                season = "Autumn"
-        elif month in [6, 7, 8]:
-            if geo_location == "Northern":
-                season = "Summer"
-            else:
-                season = "Winter"
-        elif month in [9, 10, 11]:
-            if geo_location == "Northern":
-                season = "Autumn"
-            else:
-                season = "Spring"
+        # FIX: Does this method need to catch exceptions because of this? How?
+        location_zone = self.locate_country_zone(country)
 
-        if geo_location == "Equator":
-            # FIX: Case of the equator. There are dry and wet seasons, but otherwise not the classical seasons of winter, spring, summer, and autumn. This needs to be discussed how we should do.
+        if location_zone == "Equator":
             ...
+        else:
+            # FIX: Unnecessairy check?
+            hemispheres = self.season_hemisphere_mapping.get(month)
+            if not hemispheres:
+                raise ValueError(f"Provided {month} does not exist")
+
+            season = hemispheres.get(location_zone)
+            if not season:
+                raise ValueError(f"No found season for location zone {location_zone}.")
 
         return season
+
+    def locate_country_zone(self, country_name: str) -> str:
+        """Identify the hemisphere in which the country is located or determine if it is situated on the equator."""
+
+        # FIX correct error handling?
+        # - can't connect to server
+        with contextlib.suppress(geocoder.RequestException):
+            location = geocoder.osm(country_name)
+
+        # try:
+        #     location = geocoder.osm(country_name)
+        # except geocoder.RequestException as e:
+        #     print(f"Request Exception: {e}")
+
+        # Get the latitude from the location (country) given.
+        latitude = location.latlng[0]
+
+        if 0 < latitude <= 90:
+            hemisphere = "Northern"
+        elif -90 <= latitude < 0:
+            hemisphere = "Southern"
+        elif latitude == 0:
+            hemisphere = "Equator"
+        else:
+            raise ValueError(f"No result found for the latitude {latitude}.")
+
+        return hemisphere
 
     ##############################
 
@@ -172,44 +192,44 @@ class HolidaySeasonMapper:
         current_date = dt_util.now().date()
 
         # Get holiday attributes
-        states = hass.states._states
+        # states = hass.states._states
         calendar_holiday_state = None
         start_time_next_holiday = None
         holiday_title = " "
         end_time_holiday = ""
 
-        translator = Translator()
+        # translator = Translator()
 
         # loop all calendars and check if it is a holiday calendar
-        for state in states:
-            if state.startswith("calendar"):
-                holiday_string = state.split(".")[1]
-                translation = translator.translate(holiday_string, dest="en")
-                if "holiday" in translation.text.lower():
-                    # get the next holiday of this calendar
-                    calendar_holiday_state = hass.states.get(state)
-                    holiday = calendar_holiday_state.as_compressed_state["a"]
-                    start_time_this_holiday = holiday["start_time"]
+        # for state in states:
+        #     if state.startswith("calendar"):
+        #         holiday_string = state.split(".")[1]
+        #         translation = translator.translate(holiday_string, dest="en")
+        #         if "holiday" in translation.text.lower():
+        #             # get the next holiday of this calendar
+        #             calendar_holiday_state = hass.states.get(state)
+        #             holiday = calendar_holiday_state.as_compressed_state["a"]
+        #             start_time_this_holiday = holiday["start_time"]
 
-                    # if no calendar has been iterated previously, this calendar holiday info is saved
-                    if start_time_next_holiday is None:
-                        start_time_next_holiday = start_time_this_holiday
-                        end_time_holiday = holiday["end_time"]
-                        holiday_title = holiday["message"]
-                    else:
-                        # make the dates comparable
-                        datetime_next_holiday = datetime.strptime(
-                            start_time_next_holiday, "%Y-%m-%d %H:%M:%S"
-                        )
-                        datetime_this_holiday = datetime.strptime(
-                            start_time_this_holiday, "%Y-%m-%d %H:%M:%S"
-                        )
+        #             # if no calendar has been iterated previously, this calendar holiday info is saved
+        #             if start_time_next_holiday is None:
+        #                 start_time_next_holiday = start_time_this_holiday
+        #                 end_time_holiday = holiday["end_time"]
+        #                 holiday_title = holiday["message"]
+        #             else:
+        #                 # make the dates comparable
+        #                 datetime_next_holiday = datetime.strptime(
+        #                     start_time_next_holiday, "%Y-%m-%d %H:%M:%S"
+        #                 )
+        #                 datetime_this_holiday = datetime.strptime(
+        #                     start_time_this_holiday, "%Y-%m-%d %H:%M:%S"
+        #                 )
 
-                        # saves the next holiday info of this calendar if the next holiday of this calendar is sooner than the previous calendar's next holiday
-                        if datetime_this_holiday < datetime_next_holiday:
-                            start_time_next_holiday = start_time_this_holiday
-                            end_time_holiday = holiday["end_time"]
-                            holiday_title = holiday["message"]
+        #                 # saves the next holiday info of this calendar if the next holiday of this calendar is sooner than the previous calendar's next holiday
+        #                 if datetime_this_holiday < datetime_next_holiday:
+        #                     start_time_next_holiday = start_time_this_holiday
+        #                     end_time_holiday = holiday["end_time"]
+        #                     holiday_title = holiday["message"]
 
         if calendar_holiday_state is None:
             return "No holiday"

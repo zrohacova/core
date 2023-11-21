@@ -1,5 +1,6 @@
 """Module for testing the WeatherPlaylistMapper functionality in the Spotify integration."""
 
+import datetime
 import json
 from unittest.mock import patch
 
@@ -146,30 +147,60 @@ def test_condtion_including_special_characters(
         mapper.map_weather_to_playlists(20, "windy?")
 
 
-# Below are test cases for the HolidaySeasonMapper
-def test_init_valid_season_mapper() -> None:
+@pytest.fixture
+def holiday_season_mapper():
+    """Fixture for initializing the HolidaySeasonMapper."""
+    return HolidaySeasonMapper()
+
+
+def test_init_valid_season_mapper(holiday_season_mapper: HolidaySeasonMapper) -> None:
     """Test initialization of HolidaySeasonMapper."""
-    season_holiday_mapper = HolidaySeasonMapper()
-    assert season_holiday_mapper.season_hemisphere_mapping is not None
-    assert season_holiday_mapper.season_equator_mapping is not None
-
-
-# def test_locate_hemisphere() -> None:
-#     season_holiday_mapper = HolidaySeasonMapper()
-#     hemisphere = season_holiday_mapper.locate_country_zone("175 5th Avenue NYC")
-#     assert hemisphere == "Northern"
+    assert holiday_season_mapper.season_hemisphere_mapping is not None
+    assert holiday_season_mapper.season_equator_mapping is not None
 
 
 @patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
-def test_get_hemisphere(mock_geocoder_osm) -> None:
+def test_get_hemisphere(
+    mock_geocoder_osm,
+    holiday_season_mapper: HolidaySeasonMapper,
+) -> None:
     """Test get accurate hemisphare based on latitude provided from mocking."""
-    # Set up the mock response for geocoder.osm
+
     mock_location = mock_geocoder_osm.return_value
     mock_location.ok = True
+    mock_location.latlng = (59.33258, 18.0649)
 
-    mock_location.latlng = (50.0, 10.0)
-
-    mapper = HolidaySeasonMapper()
-    hemisphere = mapper.locate_country_zone("Sweden")
+    hemisphere = holiday_season_mapper.locate_country_zone("Sweden")
 
     assert hemisphere == "Northern"
+
+
+@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+def test_get_season(
+    mock_geocoder_osm, holiday_season_mapper: HolidaySeasonMapper
+) -> None:
+    """Test get correct season from given country and date."""
+    mock_location = mock_geocoder_osm.return_value
+    mock_location.ok = True
+    mock_location.latlng = (-35.28346, 149.12807)
+
+    date = datetime.date(year=2023, month=11, day=17)
+    season = holiday_season_mapper.get_season("Australia", date)
+
+    assert season == "Spring"
+
+
+@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+def test_invalid_latitude_input(
+    mock_geocoder_osm, holiday_season_mapper: HolidaySeasonMapper
+) -> None:
+    """Test that a ValueError is raised when an incorrect latitude is provided."""
+    mock_location = mock_geocoder_osm.return_value
+    mock_location.ok = True
+    mock_location.latlng = (120, 149.12807)
+
+    with pytest.raises(
+        ValueError,
+        match="No result found for the latitude 120.",
+    ):
+        holiday_season_mapper.locate_country_zone("Australia")
