@@ -113,7 +113,7 @@ class RecommendationHandler:
 
         # Check if the last API call date is valid and different from the current date
         if (
-            not self._is_valid_date(self._last_api_call_date)
+            dt_util.parse_date(self._last_api_call_date) is None
             or self._last_api_call_date != current_date
         ):
             try:
@@ -134,12 +134,3 @@ class RecommendationHandler:
             items = self._last_api_call_result_date
             media = self._media
         return media, items
-
-    def _is_valid_date(self, date_str: str) -> bool:
-        """Check if a date string is in a valid format."""
-        parsed_date = dt_util.parse_date(date_str)
-        if parsed_date is None:
-            # Date parsing failed, invalid format
-            _LOGGER.warning("Invalid Date Format: %s", date_str)
-            return False
-        return True
