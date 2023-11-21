@@ -97,6 +97,7 @@ class RecommendationHandler:
         self, hass: HomeAssistant, spotify: Spotify
     ) -> tuple[Optional[dict[str, Any]], list]:
         """Fetch Spotify playlists for date-based recommendations."""
+
         try:
             current_date_search_string = self._generate_date_search_string()
             current_date = dt_util.now().date().isoformat()
@@ -112,9 +113,14 @@ class RecommendationHandler:
             raise
         except SpotifyException as e:
             _LOGGER.error("Spotify API error: %s", e)
-            raise
+            # Inform the user about the API issue
+            raise HomeAssistantError(
+                "There was an issue connecting to Spotify. Please try again later."
+            ) from e
 
     def _generate_date_search_string(self) -> str:
+        """Generate a search string based on the current date."""
+
         # Implement logic to dynamically generate the search string based on the current date
         search_string = "winter"
 
@@ -127,6 +133,8 @@ class RecommendationHandler:
         return search_string
 
     def _is_new_date(self, current_date: str) -> bool:
+        """Check if the current date is different from the last API call date or issue with previous API call."""
+
         return (
             dt_util.parse_date(self._last_api_call_date) is None
             or self._last_api_call_date != current_date
@@ -135,8 +143,18 @@ class RecommendationHandler:
     def _fetch_spotify_playlists(
         self, spotify: Spotify, search_string: str, current_date: str
     ) -> tuple[Optional[dict[str, Any]], list]:
+        """Fetch playlists from Spotify based on the given search string."""
+
         media = spotify.search(q=search_string, type="playlist", limit=BROWSE_LIMIT)
         items = media.get("playlists", {}).get("items", [])
+
+        if not items:
+            _LOGGER.error(
+                "No playlists found for the given search string: %s", search_string
+            )
+            raise HomeAssistantError(
+                "There was an issue with fetching the playlists from spotify for current date. Please check back later."
+            )
 
         self._last_api_call_result_date = items
         self._last_api_call_date = current_date
