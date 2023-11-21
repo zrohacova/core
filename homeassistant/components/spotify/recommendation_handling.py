@@ -97,10 +97,9 @@ class RecommendationHandler:
         return media, items
 
     def handling_date_recommendations(
-        self, hass: HomeAssistant, spotify: Spotify
+        self, spotify: Spotify
     ) -> tuple[Optional[dict[str, Any]], list]:
         """Fetch Spotify playlists for date-based recommendations."""
-
         try:
             # Generate a search string based on the current date
             current_date_search_string = self._generate_date_search_string()
@@ -129,9 +128,8 @@ class RecommendationHandler:
 
     def _generate_date_search_string(self) -> str:
         """Generate a search string based on the current date."""
-
         # Implement logic to dynamically generate the search string based on the current date
-        search_string = "winter"
+        search_string = self.determine_search_string_based_on_date()
 
         if search_string is None:
             raise HomeAssistantError(
@@ -143,7 +141,6 @@ class RecommendationHandler:
 
     def _is_new_date(self, current_date: str) -> bool:
         """Check if the current date is different from the last API call date or issue with previous API call."""
-
         return (
             dt_util.parse_date(self._last_api_call_date) is None
             or self._last_api_call_date != current_date
@@ -153,7 +150,6 @@ class RecommendationHandler:
         self, spotify: Spotify, search_string: str, current_date: str
     ) -> tuple[Optional[dict[str, Any]], list]:
         """Fetch playlists from Spotify based on the given search string."""
-
         media = spotify.search(q=search_string, type="playlist", limit=BROWSE_LIMIT)
         items = media.get("playlists", {}).get("items", [])
 
@@ -175,6 +171,10 @@ class RecommendationHandler:
         self._media = media
 
         return media, items
+
+    def determine_search_string_based_on_date(self) -> Optional[str]:
+        """Determine the search string for Spotify playlists based on the current date."""
+        return "winter"
 
     @staticmethod
     def _get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
