@@ -411,7 +411,7 @@ def _browsing_get_items(media_content_type, spotify):
     media: dict[str, Any] | None = None
 
     if media_content_type == BrowsableMedia.CURRENT_USER_PLAYLISTS:
-        if media := spotify.current_user_top_artists(limit=BROWSE_LIMIT):
+        if media := spotify.current_user_playlists(limit=BROWSE_LIMIT):
             items = media.get("items", [])
     elif media_content_type == BrowsableMedia.CURRENT_USER_TOP_ARTISTS:
         if media := spotify.current_user_top_artists(limit=BROWSE_LIMIT):
