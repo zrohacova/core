@@ -48,7 +48,7 @@ class RecommendationHandler:
         media: dict[str, Any] | None = None
         current_weather_search_string = None
 
-        weather_entity_id = "weather.home"
+        weather_entity_id = _get_entity_ids(hass, "weather")[0]
         weather_state = hass.states.get(weather_entity_id)
         try:
             if (
@@ -92,12 +92,12 @@ class RecommendationHandler:
 
         return media, items
 
-    @staticmethod
-    def _get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
-        """Retrieve entity id's for connected integrations in the given domain."""
-        entity_reg = er.async_get(hass)
-        return [
-            entity.entity_id
-            for entity in entity_reg.entities.values()
-            if entity.domain == domain
-        ]
+
+def _get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+    """Retrieve entity id's for connected integrations in the given domain."""
+    entity_reg = er.async_get(hass)
+    return [
+        entity.entity_id
+        for entity in entity_reg.entities.values()
+        if entity.domain == domain
+    ]
