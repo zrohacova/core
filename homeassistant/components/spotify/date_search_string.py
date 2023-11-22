@@ -10,6 +10,8 @@ from googletrans import Translator
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+# from homeassistant.exceptions import HomeAssistantError
+
 
 class HolidayDateMapper:
     """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
@@ -106,6 +108,10 @@ class HolidayDateMapper:
         #         # get the next holiday of this calendar
         #         calendar_holiday_state = hass.states.get(entity_id)
         #         holiday = calendar_holiday_state.as_compressed_state["a"]
+
+        #         if not holiday["start_time"] or holiday["message"] or holiday["end-time"]:
+        #             raise HomeAssistantError("Your calendar with entity id ", entity_id," is inactivated in your Google Calendar. Vists Google Calendar to activate it, or remove it from your HomeAssistant")
+
         #         start_time_this_holiday = holiday["start_time"]
 
         #         if holiday_start_time is None:
