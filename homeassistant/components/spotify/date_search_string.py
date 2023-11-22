@@ -1,12 +1,12 @@
 """Contains HolidayDateMapper class, which provides functionality to map current holiday if there is one in the range of a week, otherwise to map current day, month and season to an appropriate search string to be entered in Spotify."""
 import calendar
 import contextlib
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import geocoder
+from googletrans import Translator
 
-# from googletrans import Translator
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
@@ -91,55 +91,58 @@ class HolidayDateMapper:
         current_date = dt_util.now().date()
 
         # Get holiday attributes
-        # states = hass.states._states
+        # calendar_entity_ids = get_entity_ids(hass, "calendar") #will get this from RecommendationHandler
+        # if not calendar_entity_ids:
+        #     raise HomeAssistantError("No calendar entities available")
+
         calendar_holiday_state = None
-        start_time_next_holiday = None
+        holiday_start_time = None
         holiday_title = " "
-        end_time_holiday = ""
+        holiday_end_time = ""
 
-        # translator = Translator()
+        # loop all calendar id's and check if it is a holiday calendar
+        # for entity_id in calendar_entity_ids:
+        #     if self.is_holiday_calendar(entity_id):
+        #         # get the next holiday of this calendar
+        #         calendar_holiday_state = hass.states.get(entity_id)
+        #         holiday = calendar_holiday_state.as_compressed_state["a"]
+        #         start_time_this_holiday = holiday["start_time"]
 
-        # loop all calendars and check if it is a holiday calendar
-        # for state in states:
-        #     if state.startswith("calendar"):
-        #         holiday_string = state.split(".")[1]
-        #         translation = translator.translate(holiday_string, dest="en")
-        #         if "holiday" in translation.text.lower():
-        #             # get the next holiday of this calendar
-        #             calendar_holiday_state = hass.states.get(state)
-        #             holiday = calendar_holiday_state.as_compressed_state["a"]
-        #             start_time_this_holiday = holiday["start_time"]
-
-        #             # if no calendar has been iterated previously, this calendar holiday info is saved
-        #             if start_time_next_holiday is None:
-        #                 start_time_next_holiday = start_time_this_holiday
-        #                 end_time_holiday = holiday["end_time"]
-        #                 holiday_title = holiday["message"]
-        #             else:
-        #                 # make the dates comparable
-        #                 datetime_next_holiday = datetime.strptime(
-        #                     start_time_next_holiday, "%Y-%m-%d %H:%M:%S"
-        #                 )
-        #                 datetime_this_holiday = datetime.strptime(
-        #                     start_time_this_holiday, "%Y-%m-%d %H:%M:%S"
-        #                 )
-
-        #                 # saves the next holiday info of this calendar if the next holiday of this calendar is sooner than the previous calendar's next holiday
-        #                 if datetime_this_holiday < datetime_next_holiday:
-        #                     start_time_next_holiday = start_time_this_holiday
-        #                     end_time_holiday = holiday["end_time"]
-        #                     holiday_title = holiday["message"]
+        #         if holiday_start_time is None:
+        #             holiday_start_time = start_time_this_holiday
+        #             holiday_end_time = holiday["end_time"]
+        #             holiday_title = holiday["message"]
+        #         elif self.is_holiday_sooner(holiday_start_time, start_time_this_holiday):
+        #             holiday_start_time = start_time_this_holiday
+        #             holiday_end_time = holiday["end_time"]
+        #             holiday_title = holiday["message"]
 
         if calendar_holiday_state is None:
             return "No holiday"
 
-        week_before_holiday = start_time_next_holiday.date() - timedelta(weeks=1)
+        week_before_holiday = holiday_start_time.date() - timedelta(weeks=1)
 
         # Check if current date is in holiday range
-        if week_before_holiday <= current_date <= end_time_holiday.date():
+        if week_before_holiday <= current_date <= holiday_end_time.date():
             return holiday_title
 
         return "No holiday"
+
+    def is_holiday_sooner(self, start_time_holiday1_: str, start_time_holiday2: str):
+        """Check if holiday1 is sooner than holiday2."""
+        # make the dates comparable
+        datetime_holiday = datetime.strptime(start_time_holiday1_, "%Y-%m-%d %H:%M:%S")
+        datetime_this_holiday = datetime.strptime(
+            start_time_holiday2, "%Y-%m-%d %H:%M:%S"
+        )
+        return datetime_this_holiday < datetime_holiday
+
+    def is_holiday_calendar(self, calendar_id: str):
+        """Check if the calendar is a calendar including holidays."""
+        translator = Translator()
+        holiday_string = calendar_id.split(".")[1]
+        translation = translator.translate(holiday_string, dest="en")
+        return "holiday" in translation.text.lower()
 
     def get_month(self, current_date: date):
         """Get month as a string."""
