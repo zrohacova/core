@@ -58,7 +58,10 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_id = _get_entity_ids(hass, "weather")[0]
+        weather_entity_ids = _get_entity_ids(hass, "weather")
+        if not weather_entity_ids:
+            raise HomeAssistantError("No weather entity available")
+        weather_entity_id = weather_entity_ids[0]
         weather_state = hass.states.get(weather_entity_id)
         try:
             if (
