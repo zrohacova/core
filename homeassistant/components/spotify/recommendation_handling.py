@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
-from .search_string_generator import WeatherPlaylistMapper
+from .weather_search_string import WeatherPlaylistMapper
 
 _LOGGER = logging.getLogger(__name__)
 
