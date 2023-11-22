@@ -58,7 +58,7 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_ids = _get_entity_ids(hass, "weather")
+        weather_entity_ids = get_entity_ids(hass, "weather")
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -115,7 +115,7 @@ class RecommendationHandler:
         return media, items
 
 
-def _get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
     """Retrieve entity id's for connected integrations in the given domain."""
     entity_reg = er.async_get(hass)
     return [

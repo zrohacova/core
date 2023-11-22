@@ -8,9 +8,10 @@ import geocoder
 from googletrans import Translator
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-# from homeassistant.exceptions import HomeAssistantError
+from .recommendation_handling import get_entity_ids
 
 
 class HolidayDateMapper:
@@ -93,38 +94,59 @@ class HolidayDateMapper:
         current_date = dt_util.now().date()
 
         # Get holiday attributes
-        # calendar_entity_ids = get_entity_ids(hass, "calendar") #will get this from RecommendationHandler
-        # if not calendar_entity_ids:
-        #     raise HomeAssistantError("No calendar entities available")
+        calendar_entity_ids = get_entity_ids(hass, "calendar")
+        if not calendar_entity_ids:
+            raise HomeAssistantError("No calendar entities available")
 
         calendar_holiday_state = None
         holiday_start_time = None
         holiday_title = " "
-        holiday_end_time = ""
+        holiday_end_time = None
 
         # loop all calendar id's and check if it is a holiday calendar
-        # for entity_id in calendar_entity_ids:
-        #     if self.is_holiday_calendar(entity_id):
-        #         # get the next holiday of this calendar
-        #         calendar_holiday_state = hass.states.get(entity_id)
-        #         holiday = calendar_holiday_state.as_compressed_state["a"]
+        for entity_id in calendar_entity_ids:
+            if self.is_holiday_calendar(entity_id):
+                # get the next holiday of this calendar
+                calendar_holiday_state = hass.states.get(entity_id)
+                if calendar_holiday_state is None:
+                    raise HomeAssistantError(
+                        "Problem with fetching holidays for calendar", entity_id
+                    )
 
-        #         if not holiday["start_time"] or holiday["message"] or holiday["end-time"]:
-        #             raise HomeAssistantError("Your calendar with entity id ", entity_id," is inactivated in your Google Calendar. Vists Google Calendar to activate it, or remove it from your HomeAssistant")
+                holiday = calendar_holiday_state.as_compressed_state["a"]
 
-        #         start_time_this_holiday = holiday["start_time"]
+                if (
+                    "start_time" not in holiday
+                    or "message" not in holiday
+                    or "end_time" not in holiday
+                ):
+                    raise HomeAssistantError(
+                        "Your calendar with entity id ",
+                        entity_id,
+                        " is inactivated in your Google Calendar. Vists Google Calendar to activate it, or remove it from your HomeAssistant",
+                    )
 
-        #         if holiday_start_time is None:
-        #             holiday_start_time = start_time_this_holiday
-        #             holiday_end_time = holiday["end_time"]
-        #             holiday_title = holiday["message"]
-        #         elif self.is_holiday_sooner(holiday_start_time, start_time_this_holiday):
-        #             holiday_start_time = start_time_this_holiday
-        #             holiday_end_time = holiday["end_time"]
-        #             holiday_title = holiday["message"]
+                start_time_this_holiday = datetime.strptime(
+                    holiday["start_time"], "%Y-%m-%d %H:%M:%S"
+                )
+
+                if (
+                    holiday_start_time is None
+                    or holiday_start_time > start_time_this_holiday
+                ):
+                    holiday_start_time = start_time_this_holiday
+                    holiday_end_time = datetime.strptime(
+                        holiday["end_time"], "%Y-%m-%d %H:%M:%S"
+                    )
+                    holiday_title = holiday["message"]
 
         if calendar_holiday_state is None:
             return "No holiday"
+
+        if holiday_end_time is None or holiday_start_time is None:
+            raise HomeAssistantError(
+                "Problem with fetching holiday dates for holiday", holiday_title
+            )
 
         week_before_holiday = holiday_start_time.date() - timedelta(weeks=1)
 
@@ -134,20 +156,11 @@ class HolidayDateMapper:
 
         return "No holiday"
 
-    def is_holiday_sooner(self, start_time_holiday1_: str, start_time_holiday2: str):
-        """Check if holiday1 is sooner than holiday2."""
-        # make the dates comparable
-        datetime_holiday = datetime.strptime(start_time_holiday1_, "%Y-%m-%d %H:%M:%S")
-        datetime_this_holiday = datetime.strptime(
-            start_time_holiday2, "%Y-%m-%d %H:%M:%S"
-        )
-        return datetime_this_holiday < datetime_holiday
-
     def is_holiday_calendar(self, calendar_id: str):
         """Check if the calendar is a calendar including holidays."""
         translator = Translator()
         holiday_string = calendar_id.split(".")[1]
-        translation = translator.translate(holiday_string, dest="en")
+        translation = translator.translate(holiday_string)
         return "holiday" in translation.text.lower()
 
     def get_month(self, current_date: date):
