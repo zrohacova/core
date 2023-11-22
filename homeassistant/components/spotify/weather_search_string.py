@@ -8,7 +8,9 @@ class WeatherPlaylistMapper:
     # Constant for the temperature threshold
     TEMPERATURE_THRESHOLD_CELSIUS = 15
 
-    def __init__(self, mapping_file="spotify_mappings.json") -> None:
+    def __init__(
+        self, mapping_file="homeassistant/components/spotify/spotify_mappings.json"
+    ) -> None:
         """Initialize the WeatherPlaylistMapper with mappings from a file.
 
         Args:
