@@ -194,16 +194,34 @@ def test_get_season(
     mock_location.latlng = (-35.28346, 149.12807)
 
     date = datetime.date(year=2023, month=11, day=17)
-    season = holiday_season_mapper.get_season("Australia", date)
+    season = holiday_season_mapper.get_season("AU", date)
 
     assert season == "Spring"
 
 
 @patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
-def test_invalid_latitude_input(
+def test_get_season_invalid_country_code(
     mock_geocoder_osm, holiday_season_mapper: HolidaySeasonMapper
 ) -> None:
-    """Test that a ValueError is raised when an incorrect latitude is provided."""
+    """Test that an AttributeError is raised when providing an invalid country code."""
+    mock_location = mock_geocoder_osm.return_value
+    mock_location.ok = True
+    mock_location.latlng = (-35.28346, 149.12807)
+
+    date = datetime.date(year=1997, month=11, day=21)
+
+    with pytest.raises(
+        AttributeError,
+        match="Country name not found for given country code ZZ",
+    ):
+        holiday_season_mapper.get_season("ZZ", date)
+
+
+@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+def test_locate_country_invalid_latitude(
+    mock_geocoder_osm, holiday_season_mapper: HolidaySeasonMapper
+) -> None:
+    """Test that a ValueError is raised when an incorrect latitude is provided directly to the locate_country_zone method."""
     mock_location = mock_geocoder_osm.return_value
     mock_location.ok = True
     mock_location.latlng = (120, 149.12807)
@@ -213,3 +231,22 @@ def test_invalid_latitude_input(
         match="No result found for the latitude 120.",
     ):
         holiday_season_mapper.locate_country_zone("Australia")
+
+
+@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+def test_get_season_invalid_latitude(
+    mock_geocoder_osm,
+    holiday_season_mapper: HolidaySeasonMapper,
+) -> None:
+    """Test that a ValueError is raised and handled when the calling method get_season is called."""
+    mock_location = mock_geocoder_osm.return_value
+    mock_location.ok = True
+    mock_location.latlng = (120, 149.12807)
+
+    date = datetime.date(year=1997, month=11, day=21)
+
+    with pytest.raises(
+        ValueError,
+        match="No result found for the latitude 120.",
+    ):
+        holiday_season_mapper.get_season("AU", date)
