@@ -31,21 +31,31 @@ class RecommendationHandler:
 
     _media: dict[str, Any] | None = None
 
-    def __new__(cls) -> "RecommendationHandler":  # singleton pattern
+    def __new__(cls) -> "RecommendationHandler":
         """Create a new instance of RecommendationHandler or return the existing instance."""
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def handling_weather_recommendations(self, hass: HomeAssistant, spotify: Spotify):
+    def handling_weather_recommendations(
+        self, hass: HomeAssistant, spotify: Spotify
+    ) -> tuple[Optional[dict[str, Any]], list]:
         """Fetch Spotify playlists for weather-based recommendations.
 
         The method uses current weather conditions to generate a search string for querying Spotify
         to find relevant playlists. Caches the last API call result for efficiency.
         """
+        current_weather_search_string = self._get_current_weather_search_string(hass)
 
-        items = []
-        media: dict[str, Any] | None = None
+        if current_weather_search_string is not None:
+            return self._fetch_weather_spotify_playlist(
+                spotify, current_weather_search_string
+            )
+        raise HomeAssistantError("Weather data is not available")
+
+    def _get_current_weather_search_string(self, hass: HomeAssistant) -> str | None:
+        """Fetch current weather and map it to search string."""
+
         current_weather_search_string = None
 
         weather_entity_id = _get_entity_ids(hass, "weather")[0]
@@ -67,29 +77,38 @@ class RecommendationHandler:
                 raise HomeAssistantError("Weather_state data is not available")
         except ValueError:
             _LOGGER.error(" Search_string value error: {e}")
+        return current_weather_search_string
 
-        if current_weather_search_string is not None:
-            try:
-                if self._last_weather_search_string != current_weather_search_string:
-                    if media := spotify.search(
-                        q=current_weather_search_string,
-                        type="playlist",
-                        limit=BROWSE_LIMIT,
-                    ):
-                        items = media.get("playlists", {}).get("items", [])
+    def _has_weather_changed(self, current_weather_search_string: str) -> bool:
+        """Check if the weather state has changed."""
+        if self._last_weather_search_string != current_weather_search_string:
+            return True
+        return False
 
-                        self._last_api_call_result_weather = items
-                        self._last_weather_search_string = current_weather_search_string
-                        self._media = media
-                else:
-                    items = self._last_api_call_result_weather
-                    media = self._media
-            except SpotifyException:
-                # Handle Spotify API exceptions
-                _LOGGER.error("Spotify API error: {e}")
-        else:
-            raise HomeAssistantError("Weather data is not available")
+    def _fetch_weather_spotify_playlist(
+        self, spotify: Spotify, current_weather_search_string: str
+    ) -> tuple[Optional[dict[str, Any]], list]:
+        """Fetch playlist from spotify based on the given search string if the weather state has changed."""
+        items = []
+        media: dict[str, Any] | None = None
+        try:
+            if self._has_weather_changed(current_weather_search_string):
+                if media := spotify.search(
+                    q=current_weather_search_string,
+                    type="playlist",
+                    limit=BROWSE_LIMIT,
+                ):
+                    items = media.get("playlists", {}).get("items", [])
 
+                    self._last_api_call_result_weather = items
+                    self._last_weather_search_string = current_weather_search_string
+                    self._media = media
+            else:
+                items = self._last_api_call_result_weather
+                media = self._media
+        except SpotifyException:
+            # Handle Spotify API exceptions
+            _LOGGER.error("Spotify API error: {e}")
         return media, items
 
 
