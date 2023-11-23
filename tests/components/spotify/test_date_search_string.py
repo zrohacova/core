@@ -10,12 +10,12 @@ from homeassistant.components.spotify.date_search_string import HolidayDateMappe
 
 @pytest.fixture
 def holiday_date_mapper():
-    """Fixture for initializing the HolidaySeasonMapper."""
+    """Fixture for initializing the HolidayDateMapper."""
     return HolidayDateMapper()
 
 
 def test_init_valid_season_mapper(holiday_date_mapper: HolidayDateMapper) -> None:
-    """Test initialization of HolidaySeasonMapper."""
+    """Test initialization of HolidayDateMapper."""
     assert holiday_date_mapper.season_hemisphere_mapping is not None
     assert holiday_date_mapper.season_equator_mapping is not None
 
