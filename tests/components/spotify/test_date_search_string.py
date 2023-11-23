@@ -9,21 +9,21 @@ from homeassistant.components.spotify.date_search_string import HolidayDateMappe
 
 
 @pytest.fixture
-def holiday_season_mapper():
+def holiday_date_mapper():
     """Fixture for initializing the HolidaySeasonMapper."""
     return HolidayDateMapper()
 
 
-def test_init_valid_season_mapper(holiday_season_mapper: HolidayDateMapper) -> None:
+def test_init_valid_season_mapper(holiday_date_mapper: HolidayDateMapper) -> None:
     """Test initialization of HolidaySeasonMapper."""
-    assert holiday_season_mapper.season_hemisphere_mapping is not None
-    assert holiday_season_mapper.season_equator_mapping is not None
+    assert holiday_date_mapper.season_hemisphere_mapping is not None
+    assert holiday_date_mapper.season_equator_mapping is not None
 
 
-@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+@patch("homeassistant.components.spotify.date_search_string.geocoder.osm")
 def test_get_hemisphere(
     mock_geocoder_osm,
-    holiday_season_mapper: HolidayDateMapper,
+    holiday_date_mapper: HolidayDateMapper,
 ) -> None:
     """Test get accurate hemisphare based on latitude provided from mocking."""
 
@@ -31,29 +31,27 @@ def test_get_hemisphere(
     mock_location.ok = True
     mock_location.latlng = (59.33258, 18.0649)
 
-    hemisphere = holiday_season_mapper.locate_country_zone("Sweden")
+    hemisphere = holiday_date_mapper.locate_country_zone("Sweden")
 
     assert hemisphere == "Northern"
 
 
-@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
-def test_get_season(
-    mock_geocoder_osm, holiday_season_mapper: HolidayDateMapper
-) -> None:
+@patch("homeassistant.components.spotify.date_search_string.geocoder.osm")
+def test_get_season(mock_geocoder_osm, holiday_date_mapper: HolidayDateMapper) -> None:
     """Test get correct season from given country and date."""
     mock_location = mock_geocoder_osm.return_value
     mock_location.ok = True
     mock_location.latlng = (-35.28346, 149.12807)
 
     date = datetime.date(year=2023, month=11, day=17)
-    season = holiday_season_mapper.get_season("Australia", date)
+    season = holiday_date_mapper.get_season("Australia", date)
 
     assert season == "Spring"
 
 
-@patch("homeassistant.components.spotify.search_string_generator.geocoder.osm")
+@patch("homeassistant.components.spotify.date_search_string.geocoder.osm")
 def test_invalid_latitude_input(
-    mock_geocoder_osm, holiday_season_mapper: HolidayDateMapper
+    mock_geocoder_osm, holiday_date_mapper: HolidayDateMapper
 ) -> None:
     """Test that a ValueError is raised when an incorrect latitude is provided."""
     mock_location = mock_geocoder_osm.return_value
@@ -64,4 +62,4 @@ def test_invalid_latitude_input(
         ValueError,
         match="No result found for the latitude 120.",
     ):
-        holiday_season_mapper.locate_country_zone("Australia")
+        holiday_date_mapper.locate_country_zone("Australia")
