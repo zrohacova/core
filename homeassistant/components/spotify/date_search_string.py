@@ -1,11 +1,12 @@
 """Contains HolidayDateMapper class, which provides functionality to map current holiday if there is one in the range of a week, otherwise to map current day, month and season to an appropriate search string to be entered in Spotify."""
 import calendar
-import contextlib
 from datetime import date, datetime, timedelta
 from typing import Any
 
+import country_converter as coco
 import geocoder
 from googletrans import Translator
+import requests
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -39,19 +40,33 @@ class HolidayDateMapper:
         # Mapping of the seasonal changes on the equator.
         self.season_equator_mapping = {...}
 
-    # FIX correct error handling? Need to catch exceptions?
-    # FIX The country code will be given, not the country name!!
-    def get_season(self, country: str, current_date: date):
+    # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
+    def get_season(self, country_code: str, current_date: date):
         """Get the season in the given country on the given date."""
         month = current_date.month
 
-        # FIX: Does this method need to catch exceptions because of this? How?
-        location_zone = self.locate_country_zone(country)
+        # Convert the country code to the corresponding country name
+        country_name = coco.convert(country_code, to="name")
+        if country_name == "not found":
+            raise AttributeError(
+                f"Country name not found for given country code {country_code}"
+            )
 
+        # Find the country zone which the country belongs to
+        try:
+            location_zone = self.locate_country_zone(country_name)
+
+        except ValueError as e:
+            raise ValueError(f"Error in locating the country zone: {e}") from e
+
+        except ConnectionError as e:
+            raise ConnectionError(f"Connection error during geocoding: {e}") from e
+
+        # Get the corresponding seasons to the found country zone and month
         if location_zone == "Equator":
             ...
         else:
-            # FIX: Unnecessairy check?
+            # FIX necessairy?
             hemispheres = self.season_hemisphere_mapping.get(month)
             if not hemispheres:
                 raise ValueError(f"Provided {month} does not exist")
@@ -65,19 +80,16 @@ class HolidayDateMapper:
     def locate_country_zone(self, country_name: str) -> str:
         """Identify the hemisphere in which the country is located or determine if it is situated on the equator."""
 
-        # FIX correct error handling?
-        # - can't connect to server
-        with contextlib.suppress(geocoder.RequestException):
+        # Get location information of the country given
+        try:
             location = geocoder.osm(country_name)
+        except requests.exceptions.RequestException as e:
+            raise ConnectionError(f"Connection error during geocoding: {e}") from e
 
-        # try:
-        #     location = geocoder.osm(country_name)
-        # except geocoder.RequestException as e:
-        #     print(f"Request Exception: {e}")
-
-        # Get the latitude from the location (country) given.
+        # Extract the latitude from the location information of the country
         latitude = location.latlng[0]
 
+        # Find the corresponding hemisphere from the latitudinal position
         if 0 < latitude <= 90:
             hemisphere = "Northern"
         elif -90 <= latitude < 0:
