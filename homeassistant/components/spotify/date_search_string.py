@@ -4,8 +4,8 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 import country_converter as coco
+from deep_translator import GoogleTranslator
 import geocoder
-from googletrans import Translator
 import requests
 
 from homeassistant.core import HomeAssistant
@@ -170,10 +170,10 @@ class HolidayDateMapper:
 
     def is_holiday_calendar(self, calendar_id: str):
         """Check if the calendar is a calendar including holidays."""
-        translator = Translator()
+        translator = GoogleTranslator()
         holiday_string = calendar_id.split(".")[1]
         translation = translator.translate(holiday_string)
-        return "holiday" in translation.text.lower()
+        return "holiday" in translation.lower()
 
     def get_month(self, current_date: date):
         """Get month as a string."""
