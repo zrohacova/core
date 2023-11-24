@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from homeassistant.components.spotify.date_search_string import HolidayDateMapper
+from homeassistant.core import HomeAssistant
 
 
 @pytest.fixture
@@ -63,3 +64,12 @@ def test_invalid_latitude_input(
         match="No result found for the latitude 120.",
     ):
         holiday_date_mapper.locate_country_zone("Australia")
+
+
+def test_no_google_calendar_setup(
+    hass: HomeAssistant, holiday_date_mapper: HolidayDateMapper
+) -> None:
+    """Test that no holiday is returned when no google calendar is set up when fetching holidays."""
+    result = holiday_date_mapper.get_current_holiday(hass)
+
+    assert result == "No holiday"

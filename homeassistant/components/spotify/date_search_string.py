@@ -108,7 +108,7 @@ class HolidayDateMapper:
         # Get holiday attributes
         calendar_entity_ids = get_entity_ids(hass, "calendar")
         if not calendar_entity_ids:
-            raise HomeAssistantError("No calendar entities available")
+            return "No holiday"
 
         calendar_holiday_state = None
         holiday_start_time = None
