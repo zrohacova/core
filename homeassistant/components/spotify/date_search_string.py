@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
+from .const import NO_HOLIDAY
 from .recommendation_handling import get_entity_ids
 
 
@@ -40,7 +41,6 @@ class HolidayDateMapper:
         # Mapping of the seasonal changes on the equator.
         self.season_equator_mapping = {...}
 
-    # FIX: what is the type for the date provided? Will we need to check that it has the correct form?
     def get_season(self, country_code: str, current_date: date):
         """Get the season in the given country on the given date."""
         month = current_date.month
@@ -66,7 +66,6 @@ class HolidayDateMapper:
         if location_zone == "Equator":
             ...
         else:
-            # FIX necessairy?
             hemispheres = self.season_hemisphere_mapping.get(month)
             if not hemispheres:
                 raise ValueError(f"Provided {month} does not exist")
@@ -108,7 +107,7 @@ class HolidayDateMapper:
         # Get holiday attributes
         calendar_entity_ids = get_entity_ids(hass, "calendar")
         if not calendar_entity_ids:
-            return "No holiday"
+            return NO_HOLIDAY
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -153,7 +152,7 @@ class HolidayDateMapper:
                     holiday_title = holiday["message"]
 
         if calendar_holiday_state is None:
-            return "No holiday"
+            return NO_HOLIDAY
 
         if holiday_end_time is None or holiday_start_time is None:
             raise HomeAssistantError(
@@ -166,7 +165,7 @@ class HolidayDateMapper:
         if week_before_holiday <= current_date <= holiday_end_time.date():
             return holiday_title
 
-        return "No holiday"
+        return NO_HOLIDAY
 
     def is_holiday_calendar(self, calendar_id: str):
         """Check if the calendar is a calendar including holidays."""
@@ -202,7 +201,7 @@ class HolidayDateMapper:
         current_date = dt_util.now().date()
         country = user["country"]
 
-        if self.get_current_holiday(hass) == "No holiday":
+        if self.get_current_holiday(hass) == NO_HOLIDAY:
             return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
 
         return f"{self.get_current_holiday(hass)}"
