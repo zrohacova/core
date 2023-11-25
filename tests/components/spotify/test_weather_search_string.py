@@ -4,7 +4,6 @@ import json
 
 import pytest
 
-# from homeassistant.components.spotify.search_string_generator import HolidaySeasonMapper
 from homeassistant.components.spotify.weather_search_string import WeatherPlaylistMapper
 
 
