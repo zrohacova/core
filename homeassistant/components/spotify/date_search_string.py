@@ -102,12 +102,8 @@ class HolidayDateMapper:
 
     def get_current_holiday(self, hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
-        current_date = dt_util.now().date()
 
-        # Get holiday attributes
         calendar_entity_ids = RecommendationHandler.get_entity_ids(hass, "calendar")
-        if not calendar_entity_ids:
-            return NO_HOLIDAY
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -154,18 +150,27 @@ class HolidayDateMapper:
         if calendar_holiday_state is None:
             return NO_HOLIDAY
 
+        if self.is_holiday_in_range(
+            holiday_end_time, holiday_start_time, holiday_title
+        ):
+            return holiday_title
+
+        return NO_HOLIDAY
+
+    def is_holiday_in_range(self, holiday_end_time, holiday_start_time, holiday_title):
+        """Check if the holiday starts within a week. Raises error if there is not info about a holiday's start and end time."""
         if holiday_end_time is None or holiday_start_time is None:
             raise HomeAssistantError(
                 "Problem with fetching holiday dates for holiday", holiday_title
             )
 
+        current_date = dt_util.now().date()
         week_before_holiday = holiday_start_time.date() - timedelta(weeks=1)
 
-        # Check if current date is in holiday range
         if week_before_holiday <= current_date <= holiday_end_time.date():
-            return holiday_title
+            return True
 
-        return NO_HOLIDAY
+        return False
 
     def is_holiday_calendar(self, calendar_id: str):
         """Check if the calendar is a calendar including holidays."""
