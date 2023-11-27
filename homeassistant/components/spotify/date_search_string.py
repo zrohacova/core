@@ -128,9 +128,9 @@ class HolidayDateMapper:
                     or "end_time" not in holiday
                 ):
                     raise HomeAssistantError(
-                        "Your calendar with entity id ",
+                        "There is problem with calendar ",
                         entity_id,
-                        " is inactivated in your Google Calendar. Vists Google Calendar to activate it, or remove it from your HomeAssistant",
+                        ". Make sure it is activated in your Google Calendar, or remove it from your HomeAssistant",
                     )
 
                 start_time_this_holiday = datetime.strptime(
