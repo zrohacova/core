@@ -8,7 +8,7 @@ from deep_translator import GoogleTranslator
 import geocoder
 import requests
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
@@ -147,18 +147,24 @@ class HolidayDateMapper:
                     )
                     holiday_title = holiday["message"]
 
-        if calendar_holiday_state is None:
-            return NO_HOLIDAY
-
         if self.is_holiday_in_range(
-            holiday_end_time, holiday_start_time, holiday_title
+            calendar_holiday_state, holiday_end_time, holiday_start_time, holiday_title
         ):
             return holiday_title
 
         return NO_HOLIDAY
 
-    def is_holiday_in_range(self, holiday_end_time, holiday_start_time, holiday_title):
+    def is_holiday_in_range(
+        self,
+        calendar_holiday_state: State | None,
+        holiday_end_time: datetime | None,
+        holiday_start_time: datetime | None,
+        holiday_title: str,
+    ):
         """Check if the holiday starts within a week. Raises error if there is not info about a holiday's start and end time."""
+        if calendar_holiday_state is None:
+            return False
+
         if holiday_end_time is None or holiday_start_time is None:
             raise HomeAssistantError(
                 "Problem with fetching holiday dates for holiday", holiday_title
