@@ -7,12 +7,14 @@ from spotipy import Spotify, SpotifyException
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from .weather_search_string import WeatherPlaylistMapper
 
-_LOGGER = logging.getLogger(__name__)
-
+# Limit the number of items fetched from Spotify
 BROWSE_LIMIT = 48
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class RecommendationHandler:
@@ -24,6 +26,7 @@ class RecommendationHandler:
 
     _instance: Optional["RecommendationHandler"] = None
 
+    # Variables for caching API call results and search strings
     _last_weather_search_string: str = ""
     _last_api_call_date: str = ""
     _last_api_call_result_weather: list[Any] = []
@@ -58,7 +61,7 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_ids = get_entity_ids(hass, "weather")
+        weather_entity_ids = self.get_entity_ids(hass, "weather")
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -78,6 +81,7 @@ class RecommendationHandler:
                 )
             else:
                 raise HomeAssistantError("Weather_state data is not available")
+
         except ValueError:
             _LOGGER.error(" Search_string value error: {e}")
         return current_weather_search_string
@@ -102,7 +106,6 @@ class RecommendationHandler:
                     limit=BROWSE_LIMIT,
                 ):
                     items = media.get("playlists", {}).get("items", [])
-
                     self._last_api_call_result_weather = items
                     self._last_weather_search_string = current_weather_search_string
                     self._media = media
@@ -114,12 +117,92 @@ class RecommendationHandler:
             _LOGGER.error("Spotify API error: {e}")
         return media, items
 
+    def handling_date_recommendations(
+        self, spotify: Spotify
+    ) -> tuple[Optional[dict[str, Any]], list]:
+        """Fetch Spotify playlists for date-based recommendations."""
+        try:
+            # Generate a search string based on the current date
+            current_date_search_string = self._generate_date_search_string()
+            current_date = dt_util.now().date().isoformat()
 
-def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
-    """Retrieve entity id's for connected integrations in the given domain."""
-    entity_reg = er.async_get(hass)
-    return [
-        entity.entity_id
-        for entity in entity_reg.entities.values()
-        if entity.domain == domain
-    ]
+            # Fetch playlists if the date has changed since the last API call or issue with previous API call
+            if self._is_new_date(current_date):
+                return self._fetch_spotify_playlists(
+                    spotify, current_date_search_string, current_date
+                )
+            return self._media, self._last_api_call_result_date
+
+        except HomeAssistantError as e:
+            _LOGGER.error("Home Assistant error: %s", e)
+            raise
+        except SpotifyException as e:
+            _LOGGER.error("Spotify API error: %s", e)
+            # Inform the user about the API issue
+            raise HomeAssistantError(
+                "There was an issue connecting to Spotify. Please try again later."
+            ) from e
+        except ValueError as e:
+            _LOGGER.error("Value error encountered: %s", e)
+
+        return None, []
+
+    def _generate_date_search_string(self) -> str:
+        """Generate a search string based on the current date."""
+        # Implement logic to dynamically generate the search string based on the current date
+        search_string = self.determine_search_string_based_on_date()
+
+        if search_string is None:
+            raise HomeAssistantError(
+                "Oops! It looks like you haven't set up a calendar integration yet. "
+                "Please connect a calendar integration in the settings."
+            )
+
+        return search_string
+
+    def _is_new_date(self, current_date: str) -> bool:
+        """Check if the current date is different from the last API call date or issue with previous API call."""
+        return (
+            dt_util.parse_date(self._last_api_call_date) is None
+            or self._last_api_call_date != current_date
+        )
+
+    def _fetch_spotify_playlists(
+        self, spotify: Spotify, search_string: str, current_date: str
+    ) -> tuple[Optional[dict[str, Any]], list]:
+        """Fetch playlists from Spotify based on the given search string."""
+        media = spotify.search(q=search_string, type="playlist", limit=BROWSE_LIMIT)
+        items = media.get("playlists", {}).get("items", [])
+
+        # Limit the number of items to BROWSE_LIMIT
+        if len(items) > BROWSE_LIMIT:
+            items = items[:BROWSE_LIMIT]
+
+        if not items:
+            _LOGGER.error(
+                "No playlists found for the given search string: %s", search_string
+            )
+            raise HomeAssistantError(
+                "There was an issue with fetching the playlists from spotify for current date. Please check back later."
+            )
+
+        # Update cache with the latest API call results
+        self._last_api_call_result_date = items
+        self._last_api_call_date = current_date
+        self._media = media
+
+        return media, items
+
+    def determine_search_string_based_on_date(self) -> Optional[str]:
+        """Determine the search string for Spotify playlists based on the current date."""
+        return "winter"
+
+    @staticmethod
+    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+        """Retrieve entity id's for connected integrations in the given domain."""
+        entity_reg = er.async_get(hass)
+        return [
+            entity.entity_id
+            for entity in entity_reg.entities.values()
+            if entity.domain == domain
+        ]
