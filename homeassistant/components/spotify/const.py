@@ -36,3 +36,5 @@ PLAYABLE_MEDIA_TYPES = [
     MEDIA_TYPE_SHOW,
     MediaType.TRACK,
 ]
+
+NO_HOLIDAY = "No holiday"

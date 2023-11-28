@@ -533,6 +533,9 @@ dbus-fast==2.11.1
 # homeassistant.components.debugpy
 debugpy==1.8.0
 
+# homeassistant.components.spotify
+deep_translator==1.11.4
+
 # homeassistant.components.ihc
 # homeassistant.components.namecheapdns
 # homeassistant.components.ohmconnect

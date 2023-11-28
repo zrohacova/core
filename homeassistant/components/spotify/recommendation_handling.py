@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .search_string_generator import WeatherPlaylistMapper
+from .weather_search_string import WeatherPlaylistMapper
 
 # Limit the number of items fetched from Spotify
 BROWSE_LIMIT = 48
@@ -61,7 +61,7 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_ids = self._get_entity_ids(hass, "weather")
+        weather_entity_ids = self.get_entity_ids(hass, "weather")
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -197,7 +197,8 @@ class RecommendationHandler:
         """Determine the search string for Spotify playlists based on the current date."""
         return "winter"
 
-    def _get_entity_ids(self, hass: HomeAssistant, domain: str) -> list[str]:
+    @staticmethod
+    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
         """Retrieve entity id's for connected integrations in the given domain."""
         entity_reg = er.async_get(hass)
         return [

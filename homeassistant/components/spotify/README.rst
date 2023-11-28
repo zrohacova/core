@@ -44,3 +44,16 @@ To verify that the ``weather_home`` entity is correctly set up:
 - Go to `Developer Tools` > `States` in your Home Assistant.
 - In the `Filter entities` field, type ``weather.home``.
 - You should see the ``weather.home`` entity with the current weather conditions.
+
+=============================
+Playlist Recommendations Based on Holiday
+=============================
+
+The Spotify integration now contains a feature where users can receive playlist recommendations based on the date. This means that if a holiday is within a week, the playlist recommendations are based on this holiday. To fetch the holidays of the desired country/countries, Google Calendar needs to be configured. This is done in the following steps: 
+
+1. Visit https://calendar.google.com/calendar/ and make sure to be logged in 
+2. Add regional holiday calendars by pressing the "+" next to “Other calendars” in the lower left corner, and choose “Browse calendars of interest”
+3. Select the regions of interest 
+4. Configure Google Calendar in HomeAssistant by following this tutorial: https://www.youtube.com/watch?v=r2WbpxKDOD4 from 1:30 - 6:40 
+
+Done! 
