@@ -7,6 +7,7 @@ class WeatherPlaylistMapper:
 
     # Constant for the temperature threshold
     TEMPERATURE_THRESHOLD_CELSIUS = 15
+    TEMPERATURE_THRESHOLD_FAHRENHEIT = 59
 
     def __init__(
         self, mapping_file="homeassistant/components/spotify/spotify_mappings.json"
@@ -27,12 +28,15 @@ class WeatherPlaylistMapper:
                 f"The mapping file {mapping_file} was not found."
             ) from e
 
-    def map_weather_to_playlists(self, temperature: float, condition: str) -> str:
+    def map_weather_to_playlists(
+        self, temperature: float, condition: str, temperature_unit: str
+    ) -> str:
         """Map the given weather condition and temperature to an appropriate search string in Spotify.
 
         Args:
             temperature (float): The current temperature.
             condition (str): The current weather condition.
+            temperature_unit (str): The unit of temperature, either 'celsius' or 'fahrenheit'
 
         Returns:
             str: A Spotify search string corresponding to the given weather condition
@@ -46,11 +50,13 @@ class WeatherPlaylistMapper:
         # Normalize the condition to lower case for reliable matching
         condition = condition.strip().lower()
 
-        # Determine if the temperature is warm or cold
-        # FIX: Consider the unit of temperature (Fahrenheit or Celsius) and handle accordingly.
-        temperature_category = (
-            "cold" if temperature < self.TEMPERATURE_THRESHOLD_CELSIUS else "warm"
+        temperature_threshold = (
+            self.TEMPERATURE_THRESHOLD_CELSIUS
+            if temperature_unit == "celsius"
+            else self.TEMPERATURE_THRESHOLD_FAHRENHEIT
         )
+
+        temperature_category = "cold" if temperature < temperature_threshold else "warm"
 
         # Retrieve the suitable Spotify category ID from the mapping
         # Handle cases where the condition is not in the mapping
