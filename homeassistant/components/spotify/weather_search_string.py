@@ -1,5 +1,4 @@
 """Contains the WeatherPlaylistMapper class, which provides functionality to map weather conditions and temperature ranges to an appropriate search string to be entered in Spotify."""
-
 import json
 
 

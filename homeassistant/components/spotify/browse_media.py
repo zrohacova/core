@@ -216,6 +216,7 @@ async def async_browse_media_internal(
     can_play_artist: bool = True,
 ) -> BrowseMedia:
     """Browse spotify media."""
+
     if media_content_type in (None, f"{MEDIA_PLAYER_PREFIX}library"):
         return await hass.async_add_executor_job(
             partial(library_payload, can_play_artist=can_play_artist)
