@@ -1,12 +1,13 @@
 """Module for testing the HolidayDateMapper functionality in the Spotify integration."""
-
-import datetime
-from unittest.mock import patch
+import datetime as dt
+from datetime import datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from homeassistant.components.spotify.date_search_string import HolidayDateMapper
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
+from homeassistant.exceptions import HomeAssistantError
 
 
 @pytest.fixture
@@ -44,7 +45,7 @@ def test_get_season(mock_geocoder_osm, holiday_date_mapper: HolidayDateMapper) -
     mock_location.ok = True
     mock_location.latlng = (-35.28346, 149.12807)
 
-    date = datetime.date(year=2023, month=11, day=17)
+    date = dt.date(year=2023, month=11, day=17)
     season = holiday_date_mapper.get_season("Australia", date)
 
     assert season == "Spring"
@@ -73,3 +74,220 @@ def test_no_google_calendar_setup(
     result = holiday_date_mapper.get_current_holiday(hass)
 
     assert result == "No holiday"
+
+
+@patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
+@patch(
+    "homeassistant.components.spotify.date_search_string.RecommendationHandler.get_entity_ids"
+)
+def test_no_holiday_calendar(
+    mock_get_entity_ids,
+    mock_translate,
+    hass: HomeAssistant,
+    holiday_date_mapper: HolidayDateMapper,
+) -> None:
+    """Test that no holiday is returned when no holiday calendar is set up when fetching holidays."""
+
+    mock_get_entity_ids.return_value = ["calendar.a_calendar"]
+    mock_translate.return_value = "a_calendar"
+
+    result = holiday_date_mapper.get_current_holiday(hass)
+
+    assert result == "No holiday"
+
+
+@patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
+def test_is_holiday_calendar(
+    mock_translate, holiday_date_mapper: HolidayDateMapper
+) -> None:
+    """Test that calendars including holidays are detected as holiday calendars."""
+    mock_translate.return_value = "week numbers"
+    result = holiday_date_mapper.is_holiday_calendar("calendar.veckonummer")
+
+    assert result is False
+
+    mock_translate.return_value = "holidays_in_sweden"
+    result = holiday_date_mapper.is_holiday_calendar("calendar.helgdagar_i_sverige")
+
+    assert result is True
+
+
+def test_is_holiday_in_range_no_state(holiday_date_mapper: HolidayDateMapper) -> None:
+    """Test that holiday is not in range if no holiday state is found."""
+    result = holiday_date_mapper.is_holiday_in_range(None, None, None, " ")
+    assert result is False
+
+
+def test_is_holiday_in_range_no_date(holiday_date_mapper: HolidayDateMapper) -> None:
+    """Test that a HomeAssistantError is raised when dates for the holiday is not given."""
+    holiday_title = "some holiday"
+    calendar_state = State("calendar.some_calendar", "state")
+
+    with pytest.raises(
+        HomeAssistantError,
+        match=(f"Problem with fetching holiday dates for holiday: {holiday_title}"),
+    ):
+        holiday_date_mapper.is_holiday_in_range(
+            calendar_state, None, None, holiday_title
+        )
+
+    with pytest.raises(
+        HomeAssistantError,
+        match=(f"Problem with fetching holiday dates for holiday: {holiday_title}"),
+    ):
+        holiday_date_mapper.is_holiday_in_range(
+            calendar_state, "2023-11-28", None, holiday_title
+        )
+
+    with pytest.raises(
+        HomeAssistantError,
+        match=(f"Problem with fetching holiday dates for holiday: {holiday_title}"),
+    ):
+        holiday_date_mapper.is_holiday_in_range(
+            calendar_state, None, "2023-11-28", holiday_title
+        )
+
+
+@patch("homeassistant.components.spotify.date_search_string.dt_util.now")
+def test_is_holiday_in_range(
+    mock_today, holiday_date_mapper: HolidayDateMapper
+) -> None:
+    """Test if holiday is in weekly range."""
+
+    # set today to 28 nov
+    mock_today.return_value = datetime(2023, 11, 28, 12, 0, 0)
+
+    holiday_title = "some holiday"
+    calendar_state = State("calendar.some_calendar", "state")
+
+    # if the holiday is today
+    holiday_date = dt.date(year=2023, month=11, day=28)
+    result = holiday_date_mapper.is_holiday_in_range(
+        calendar_state, holiday_date, holiday_date, holiday_title
+    )
+
+    assert result is True
+
+    # if the holiday is more than a week before
+    holiday_date = dt.date(year=2023, month=11, day=13)
+    result = holiday_date_mapper.is_holiday_in_range(
+        calendar_state, holiday_date, holiday_date, holiday_title
+    )
+
+    assert result is False
+
+    # if the holiday is more than a week later
+    holiday_date = dt.date(year=2024, month=1, day=1)
+    result = holiday_date_mapper.is_holiday_in_range(
+        calendar_state, holiday_date, holiday_date, holiday_title
+    )
+
+    assert result is False
+
+
+@patch("homeassistant.components.spotify.date_search_string.dt_util.now")
+@patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
+@patch(
+    "homeassistant.components.spotify.date_search_string.RecommendationHandler.get_entity_ids"
+)
+def test_get_current_holiday(
+    mock_get_entity_ids,
+    mock_translate,
+    mock_today,
+    holiday_date_mapper: HolidayDateMapper,
+) -> None:
+    """Test that a holiday title is returned if there is an upcoming holiday."""
+
+    mock_get_entity_ids.return_value = ["calendar.a_holiday_calendar"]
+    mock_translate.return_value = "a_holiday_calendar"
+    mock_today.return_value = datetime(2023, 11, 9, 12, 0, 0)
+
+    mock_hass = MagicMock()
+    calendar_holiday_state = MagicMock()
+
+    calendar_holiday_state.as_compressed_state = {
+        "a": {
+            "start_time": "2023-11-10 00:00:00",
+            "message": "a holiday title",
+            "end_time": "2023-11-10 00:00:00",
+        }
+    }
+
+    with patch.object(mock_hass.states, "get") as mock_states_get:
+        mock_states_get.return_value = calendar_holiday_state
+        result = holiday_date_mapper.get_current_holiday(mock_hass)
+
+        assert result == "a holiday title"
+
+
+@patch("homeassistant.components.spotify.date_search_string.dt_util.now")
+@patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
+@patch(
+    "homeassistant.components.spotify.date_search_string.RecommendationHandler.get_entity_ids"
+)
+def test_get_next_holiday(
+    mock_get_entity_ids,
+    mock_translate,
+    mock_today,
+    holiday_date_mapper: HolidayDateMapper,
+) -> None:
+    """Test that the next holiday title is returned."""
+
+    mock_get_entity_ids.return_value = [
+        "calendar.a_holiday_calendar",
+        "calendar.another_holiday_calendar",
+    ]
+    mock_translate.return_value = "holiday"
+
+    mock_hass = MagicMock()
+    mock_calendar_holiday_state_1 = MagicMock()
+    mock_calendar_holiday_state_1.as_compressed_state = {
+        "a": {
+            "start_time": "2023-11-10 00:00:00",
+            "message": "a holiday title",
+            "end_time": "2023-11-10 00:00:00",
+        }
+    }
+
+    mock_calendar_holiday_state_2 = MagicMock()
+    mock_calendar_holiday_state_2.as_compressed_state = {
+        "a": {
+            "start_time": "2023-12-25 00:00:00",
+            "message": "another holiday title",
+            "end_time": "2023-12-25 23:59:59",
+        }
+    }
+
+    mock_today.return_value = datetime(2023, 11, 9, 12, 0, 0)
+
+    with patch.object(mock_hass.states, "get") as mock_states_get:
+        mock_states_get.side_effect = [
+            mock_calendar_holiday_state_1,
+            mock_calendar_holiday_state_2,
+        ]
+        result = holiday_date_mapper.get_current_holiday(mock_hass)
+
+        assert result == "a holiday title"
+
+        mock_calendar_holiday_state_1.as_compressed_state = {
+            "a": {
+                "start_time": "2023-11-30 00:00:00",
+                "message": "a holiday title",
+                "end_time": "2023-11-30 00:00:00",
+            }
+        }
+        mock_calendar_holiday_state_2.as_compressed_state = {
+            "a": {
+                "start_time": "2023-11-11 00:00:00",
+                "message": "another holiday title",
+                "end_time": "2023-11-11 23:59:59",
+            }
+        }
+
+        mock_states_get.side_effect = [
+            mock_calendar_holiday_state_1,
+            mock_calendar_holiday_state_2,
+        ]
+        result = holiday_date_mapper.get_current_holiday(mock_hass)
+
+        assert result == "another holiday title"
