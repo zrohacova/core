@@ -26,7 +26,8 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
         8: ["categories", "Categories"],
         9: ["featured_playlists", "Featured Playlists"],
         10: ["new_releases", "New Releases"],
-        # 11: ["weather_playlist", "Weather Playlists"],
+        11: ["date_playlist", "Date Playlists"],
+        # 12: ["weather_playlist", "Weather Playlists"],
     }
 
     with patch("homeassistant.components.spotify.config_flow.Spotify") as spotify_mock:
