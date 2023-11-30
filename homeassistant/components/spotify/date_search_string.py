@@ -13,7 +13,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from .const import NO_HOLIDAY
-from .recommendation_handling import RecommendationHandler
+from .util import get_entity_ids
 
 
 class HolidayDateMapper:
@@ -103,7 +103,7 @@ class HolidayDateMapper:
     def get_current_holiday(self, hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
 
-        calendar_entity_ids = RecommendationHandler.get_entity_ids(hass, "calendar")
+        calendar_entity_ids = get_entity_ids(hass, "calendar")
 
         calendar_holiday_state = None
         holiday_start_time = None

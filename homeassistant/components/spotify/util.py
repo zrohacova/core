@@ -5,6 +5,9 @@ from typing import Any
 
 import yarl
 
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+
 from .const import MEDIA_PLAYER_PREFIX
 
 
@@ -32,3 +35,13 @@ def spotify_uri_from_media_browser_url(media_content_id: str) -> str:
         parsed_url = yarl.URL(media_content_id)
         media_content_id = parsed_url.name
     return media_content_id
+
+
+def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+    """Retrieve entity id's for connected integrations in the given domain."""
+    entity_reg = er.async_get(hass)
+    return [
+        entity.entity_id
+        for entity in entity_reg.entities.values()
+        if entity.domain == domain
+    ]
