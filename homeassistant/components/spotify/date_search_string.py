@@ -133,8 +133,8 @@ class HolidayDateMapper:
                         ". Make sure it is activated in your Google Calendar, or remove it from your HomeAssistant",
                     )
 
-                start_time_this_holiday = datetime.strptime(
-                    holiday["start_time"], "%Y-%m-%d %H:%M:%S"
+                start_time_this_holiday = datetime.date(
+                    datetime.strptime(holiday["start_time"], "%Y-%m-%d %H:%M:%S")
                 )
 
                 if (
@@ -142,8 +142,8 @@ class HolidayDateMapper:
                     or holiday_start_time > start_time_this_holiday
                 ):
                     holiday_start_time = start_time_this_holiday
-                    holiday_end_time = datetime.strptime(
-                        holiday["end_time"], "%Y-%m-%d %H:%M:%S"
+                    holiday_end_time = datetime.date(
+                        datetime.strptime(holiday["end_time"], "%Y-%m-%d %H:%M:%S")
                     )
                     holiday_title = holiday["message"]
 
@@ -157,8 +157,8 @@ class HolidayDateMapper:
     def is_holiday_in_range(
         self,
         calendar_holiday_state: State | None,
-        holiday_end_time: datetime | None,
-        holiday_start_time: datetime | None,
+        holiday_end_time: date | None,
+        holiday_start_time: date | None,
         holiday_title: str,
     ):
         """Check if the holiday starts within a week. Raises error if there is not info about a holiday's start and end time."""
@@ -167,13 +167,13 @@ class HolidayDateMapper:
 
         if holiday_end_time is None or holiday_start_time is None:
             raise HomeAssistantError(
-                "Problem with fetching holiday dates for holiday", holiday_title
+                f"Problem with fetching holiday dates for holiday: {holiday_title}"
             )
 
         current_date = dt_util.now().date()
-        week_before_holiday = holiday_start_time.date() - timedelta(weeks=1)
+        week_before_holiday = holiday_start_time - timedelta(weeks=1)
 
-        if week_before_holiday <= current_date <= holiday_end_time.date():
+        if week_before_holiday <= current_date <= holiday_end_time:
             return True
 
         return False
@@ -210,8 +210,9 @@ class HolidayDateMapper:
     def search_string_date(self, hass: HomeAssistant, user: Any):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
-        country = user["country"]
-
+        country = " "
+        if user is not None and "country" in user:
+            country = user["country"]
         if self.get_current_holiday(hass) == NO_HOLIDAY:
             return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
 
