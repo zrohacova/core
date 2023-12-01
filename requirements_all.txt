@@ -626,9 +626,6 @@ connect-box==0.2.8
 # homeassistant.components.xiaomi_miio
 construct==2.10.68
 
-# homeassistant.components.spotify
-country_converter==1.1.1
-
 # homeassistant.components.utility_meter
 croniter==1.0.6
 
@@ -852,9 +849,6 @@ gassist-text==0.0.10
 
 # homeassistant.components.google
 gcal-sync==4.1.4
-
-# homeassistant.components.spotify
-geocoder==1.38.1
 
 # homeassistant.components.geniushub
 geniushub-client==0.7.0
