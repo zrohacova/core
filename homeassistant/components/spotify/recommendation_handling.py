@@ -9,7 +9,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from .date_search_string import HolidayDateMapper
-from .util import get_entity_ids
 from .weather_search_string import WeatherPlaylistMapper
 
 # Limit the number of items fetched from Spotify
@@ -62,8 +61,7 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_ids = get_entity_ids(hass, "weather")
-        # weather_entity_ids = self.get_entity_ids(hass, "weather")
+        weather_entity_ids = HolidayDateMapper().get_entity_ids(hass, "weather")
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]

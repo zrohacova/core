@@ -125,7 +125,7 @@ def test_no_google_calendar_setup(
 
 @patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
 @patch(
-    "homeassistant.components.spotify.date_search_string.RecommendationHandler.get_entity_ids"
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_entity_ids"
 )
 def test_no_holiday_calendar(
     mock_get_entity_ids,
@@ -233,7 +233,7 @@ def test_is_holiday_in_range(
 @patch("homeassistant.components.spotify.date_search_string.dt_util.now")
 @patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
 @patch(
-    "homeassistant.components.spotify.date_search_string.RecommendationHandler.get_entity_ids"
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_entity_ids"
 )
 def test_get_current_holiday(
     mock_get_entity_ids,
@@ -267,7 +267,7 @@ def test_get_current_holiday(
 @patch("homeassistant.components.spotify.date_search_string.dt_util.now")
 @patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
 @patch(
-    "homeassistant.components.spotify.date_search_string.RecommendationHandler.get_entity_ids"
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_entity_ids"
 )
 def test_get_next_holiday(
     mock_get_entity_ids,

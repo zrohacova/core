@@ -10,10 +10,10 @@ import requests
 
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import NO_HOLIDAY
-from .util import get_entity_ids
 
 
 class HolidayDateMapper:
@@ -103,7 +103,7 @@ class HolidayDateMapper:
     def get_current_holiday(self, hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
 
-        calendar_entity_ids = get_entity_ids(hass, "calendar")
+        calendar_entity_ids = self.get_entity_ids(hass, "calendar")
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -217,3 +217,13 @@ class HolidayDateMapper:
             return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
 
         return f"{self.get_current_holiday(hass)}"
+
+    @staticmethod
+    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+        """Retrieve entity id's for connected integrations in the given domain."""
+        entity_reg = er.async_get(hass)
+        return [
+            entity.entity_id
+            for entity in entity_reg.entities.values()
+            if entity.domain == domain
+        ]
