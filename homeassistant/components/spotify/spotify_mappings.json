@@ -1,62 +1,62 @@
 {
   "clear-night": {
-    "warm": "Starry Night Vibes",
-    "cold": "Winter Star-gazing"
+    "warm": "Star Gazing ",
+    "cold": "Winter Night"
   },
   "cloudy": {
-    "warm": "Overcast Moods",
-    "cold": "Chilly Cloud Cover"
+    "warm": "Cloudy Warm",
+    "cold": "Chill Cloudy"
   },
   "fog": {
-    "warm": "Misty Morning Mix",
-    "cold": "Foggy Night Chill"
+    "warm": "Foggy Morning",
+    "cold": "Foggy Chill"
   },
   "hail": {
-    "warm": "Hailstorm Hits",
-    "cold": "Icy Beats"
+    "warm": "Stormy Day",
+    "cold": "Cold Cozy"
   },
   "lightning": {
-    "warm": "Electric Summer",
-    "cold": "Thunderous Tunes"
+    "warm": "Thunderstorm",
+    "cold": "Thunder Chill"
   },
   "lightning-rainy": {
-    "warm": "Stormy Weather Jams",
-    "cold": "Rain and Thunder Relaxation"
+    "warm": "Thunder and Rain",
+    "cold": "Relax Thunderstorm"
   },
   "partlycloudy": {
-    "warm": "Partly Sunny Sounds",
-    "cold": "Cool Breeze Melodies"
+    "warm": "Cloudy Sunny",
+    "cold": "Partly Cloudy"
   },
   "pouring": {
-    "warm": "Rainy Day Rhythms",
-    "cold": "Downpour Blues"
+    "warm": "Rainy Day",
+    "cold": "Rainy Cosy"
   },
   "rainy": {
-    "warm": "Raindrops and Beats",
-    "cold": "Melancholic Rain"
+    "warm": "Rainy Day",
+    "cold": "Rainy Cosy"
   },
   "snowy": {
-    "warm": "Snowfall Serenades",
-    "cold": "Blizzard Ballads"
+    "warm": "Snowy",
+    "cold": "Snowy"
   },
   "snowy-rainy": {
-    "warm": "Sleet Soundtrack",
-    "cold": "Freezing Rain Tunes"
+    "warm": "Snowy Rainy",
+    "cold": "Snowy Rainy"
   },
   "sunny": {
-    "warm": "Sunny Day Play",
-    "cold": "Crisp Sunshine Melodies"
+    "warm": "Sunny",
+    "cold": "Cold Sunny"
   },
   "windy": {
-    "warm": "Windy Day Whistles",
-    "cold": "Gusty Echoes"
+    "warm": "Windy Day",
+    "cold": "Windy Chill"
   },
   "windy-variant": {
-    "warm": "Breezy Afternoon",
-    "cold": "Brisk Wind Ballads"
+    "warm": "Windy Day",
+    "cold": "Windy Chill"
   },
   "exceptional": {
-    "warm": "Extraordinary Sounds",
-    "cold": "Unique Beats for Unusual Weather"
+    "warm": "Happy",
+    "cold": "Chill"
   }
 }
