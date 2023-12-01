@@ -1,0 +1,8 @@
+set_timeframe:
+  description: Set the timeframe for the Spotify holiday playlist feature.
+  fields:
+    timeframe:
+      description: The number of days before a holiday to start showing holiday playlists.
+      example: 7
+      required: true
+      type: integer

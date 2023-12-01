@@ -19,8 +19,10 @@ from .recommendation_handling import RecommendationHandler
 class HolidayDateMapper:
     """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
 
-    def __init__(self) -> None:
+    def __init__(self, timeframe: int = 7) -> None:
         """Initialize of the HolidaySeasonMapper."""
+
+        self.timeframe = timeframe
 
         # Mapping of which months at which hemisphere corresponds to what season.
         self.season_hemisphere_mapping = {
@@ -171,9 +173,11 @@ class HolidayDateMapper:
             )
 
         current_date = dt_util.now().date()
-        week_before_holiday = holiday_start_time.date() - timedelta(weeks=1)
+        timeframe_before_holiday = holiday_start_time.date() - timedelta(
+            days=self.timeframe
+        )
 
-        if week_before_holiday <= current_date <= holiday_end_time.date():
+        if timeframe_before_holiday <= current_date <= holiday_end_time.date():
             return True
 
         return False
