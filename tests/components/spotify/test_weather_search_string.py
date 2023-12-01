@@ -51,7 +51,7 @@ def test_map_weather_to_playlists_valid_conditions(
     """Test mapping weather conditions to search string with valid conditions."""
     search_string = mapper.map_weather_to_playlists(20, "pouring")
     # Expected for 'warm' 'pouring'
-    assert search_string == "Rainy Day Rhythms"
+    assert search_string == "Rainy Day"
 
 
 def test_map_weather_to_playlists_invalid_condition(
@@ -68,7 +68,7 @@ def test_map_weather_to_playlists_boundary_temperature_1(
     """Test mapping weather conditions to search string at the boundary temperature."""
     search_string = mapper.map_weather_to_playlists(15, "cloudy")
     # Expected for 'warm' 'cloudy
-    assert search_string == "Overcast Moods"
+    assert search_string == "Cloudy Warm"
 
 
 def test_map_weather_to_playlists_boundary_temperature_2(
@@ -77,7 +77,7 @@ def test_map_weather_to_playlists_boundary_temperature_2(
     """Test mapping at boundary temperature values."""
     search_string = mapper.map_weather_to_playlists(0, "fog")
     # Expected for 'cold' 'fog'
-    assert search_string == "Foggy Night Chill"
+    assert search_string == "Foggy Chill"
 
 
 def test_map_weather_to_playlists_negative_temperature(
@@ -86,7 +86,7 @@ def test_map_weather_to_playlists_negative_temperature(
     """Test mapping with negative temperature."""
     search_string = mapper.map_weather_to_playlists(-5, "snowy")
     # Expected for 'cold' 'snowy'
-    assert search_string == "Blizzard Ballads"
+    assert search_string == "Snowy"
 
 
 def test_map_weather_to_playlists_high_temperature(
@@ -95,7 +95,7 @@ def test_map_weather_to_playlists_high_temperature(
     """Test mapping with high temperature."""
     search_string = mapper.map_weather_to_playlists(35, "fog")
     # Expected for 'warm' 'fog'
-    assert search_string == "Misty Morning Mix"
+    assert search_string == "Foggy Morning"
 
 
 def test_map_weather_to_playlists_unusual_condition(
@@ -104,7 +104,7 @@ def test_map_weather_to_playlists_unusual_condition(
     """Test mapping with unusual weather condition."""
     search_string = mapper.map_weather_to_playlists(20, "exceptional")
     # Expected for 'warm' 'exceptional'
-    assert search_string == "Extraordinary Sounds"
+    assert search_string == "Happy"
 
 
 def test_map_weather_to_playlists_non_standard_condition_string(
@@ -113,7 +113,7 @@ def test_map_weather_to_playlists_non_standard_condition_string(
     """Test mapping with non-standard condition strings."""
     search_string = mapper.map_weather_to_playlists(20, "   SUNNY   ")
     # Expected for 'warm' 'sunny'
-    assert search_string == "Sunny Day Play"
+    assert search_string == "Sunny"
 
 
 def test_upper_case_input(
@@ -122,7 +122,7 @@ def test_upper_case_input(
     """Test condition input with only upper case letters."""
     search_string = mapper.map_weather_to_playlists(20, "RAINY")
     # Expected for 'warm' 'rainy'
-    assert search_string == "Raindrops and Beats"
+    assert search_string == "Rainy Day"
 
 
 def test_map_weather_to_playlists_null_parameters(
