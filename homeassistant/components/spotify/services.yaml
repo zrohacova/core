@@ -9,7 +9,6 @@ set_timeframe:
           options:
             - "days"
             - "weeks"
-            - "months"
 
     timeframe:
       example: 7

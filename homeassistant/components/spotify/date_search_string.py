@@ -173,9 +173,19 @@ class HolidayDateMapper:
                 "Problem with fetching holiday dates for holiday", holiday_title
             )
         current_date = dt_util.now().date()
-        timeframe_before_holiday = holiday_start_time.date() - timedelta(
-            days=self.timeframe
-        )
+
+        if self.time_unit == "days":
+            timeframe_before_holiday = holiday_start_time.date() - timedelta(
+                days=self.timeframe
+            )
+        elif self.time_unit == "weeks":
+            timeframe_before_holiday = holiday_start_time.date() - timedelta(
+                weeks=self.timeframe
+            )
+        else:
+            raise ValueError(
+                f"Time unit {self.time_unit} is not supported. Please choose 'days' or 'weeks'."
+            )
 
         if timeframe_before_holiday <= current_date <= holiday_end_time.date():
             return True
