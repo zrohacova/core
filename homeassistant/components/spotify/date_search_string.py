@@ -19,10 +19,11 @@ from .recommendation_handling import RecommendationHandler
 class HolidayDateMapper:
     """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
 
-    def __init__(self, timeframe: int = 7) -> None:
+    def __init__(self, timeframe: int = 7, time_unit: str = "days") -> None:
         """Initialize of the HolidaySeasonMapper."""
 
         self.timeframe = timeframe
+        self.time_unit = time_unit
 
         # Mapping of which months at which hemisphere corresponds to what season.
         self.season_hemisphere_mapping = {
@@ -171,7 +172,6 @@ class HolidayDateMapper:
             raise HomeAssistantError(
                 "Problem with fetching holiday dates for holiday", holiday_title
             )
-
         current_date = dt_util.now().date()
         timeframe_before_holiday = holiday_start_time.date() - timedelta(
             days=self.timeframe

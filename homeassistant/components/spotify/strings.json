@@ -32,6 +32,10 @@
         "timeframe": {
           "name": "Timeframe",
           "description": "The number of days before a holiday to start showing holiday playlists."
+        },
+        "time_unit": {
+          "name": "Time Unit",
+          "description": "The unit of time to use for the timeframe."
         }
       }
     }

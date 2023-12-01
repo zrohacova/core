@@ -1,7 +1,16 @@
 # Describes the format for available Spotify services
-
 set_timeframe:
   fields:
+    time_unit:
+      example: days
+      required: true
+      selector:
+        select:
+          options:
+            - "days"
+            - "weeks"
+            - "months"
+
     timeframe:
       example: 7
       required: true

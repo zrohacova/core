@@ -35,7 +35,12 @@ SERVICE_SET_TIMEFRAME: Final = "set_timeframe"
 _LOGGER = logging.getLogger(__name__)
 
 # Define the schema for your service
-SET_TIMEFRAME_SCHEMA = vol.Schema({vol.Required("timeframe"): vol.Coerce(int)})
+SET_TIMEFRAME_SCHEMA = vol.Schema(
+    {
+        vol.Required("timeframe"): vol.Coerce(int),
+        vol.Required("time_unit"): vol.Coerce(str),
+    }
+)
 
 
 __all__ = [
@@ -119,7 +124,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_set_timeframe(call: ServiceCall):
         """Handle the set_timeframe service call."""
         timeframe = call.data.get("timeframe")
+        time_unit = call.data.get("time_unit")
         hass.data[DOMAIN]["timeframe"] = timeframe
+        hass.data[DOMAIN]["time_unit"] = time_unit
 
     # Register the service
     hass.services.async_register(
