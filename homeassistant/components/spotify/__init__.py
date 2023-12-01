@@ -9,6 +9,7 @@ from typing import Any, Final
 import aiohttp
 import requests
 from spotipy import Spotify, SpotifyException
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -22,7 +23,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .browse_media import async_browse_media
 from .const import DOMAIN, LOGGER, SPOTIFY_SCOPES
-from .date_search_string import HolidayDateMapper
 from .util import (
     is_spotify_media_type,
     resolve_spotify_media_type,
@@ -34,6 +34,9 @@ SERVICE_SET_TIMEFRAME: Final = "set_timeframe"
 
 _LOGGER = logging.getLogger(__name__)
 
+# Define the schema for your service
+SET_TIMEFRAME_SCHEMA = vol.Schema({vol.Required("timeframe"): vol.Coerce(int)})
+
 
 __all__ = [
     "async_browse_media",
@@ -42,13 +45,6 @@ __all__ = [
     "is_spotify_media_type",
     "resolve_spotify_media_type",
 ]
-
-
-async def handle_set_timeframe_service(hass: HomeAssistant, call: ServiceCall):
-    """Handle the service call to set the timeframe."""
-    new_timeframe = call.data.get("timeframe")
-    holiday_mapper = hass.data[DOMAIN]["holiday_mapper"]
-    holiday_mapper.timeframe = new_timeframe
 
 
 @dataclass
@@ -118,10 +114,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         devices=device_coordinator,
         session=session,
     )
-    hass.data[DOMAIN]["holiday_mapper"] = HolidayDateMapper()
 
+    # Define the service handler
+    async def handle_set_timeframe(call: ServiceCall):
+        """Handle the set_timeframe service call."""
+        timeframe = call.data.get("timeframe")
+        hass.data[DOMAIN]["timeframe"] = timeframe
+
+    # Register the service
     hass.services.async_register(
-        DOMAIN, SERVICE_SET_TIMEFRAME, handle_set_timeframe_service
+        DOMAIN, SERVICE_SET_TIMEFRAME, handle_set_timeframe, schema=SET_TIMEFRAME_SCHEMA
     )
 
     if not set(session.token["scope"].split(" ")).issuperset(SPOTIFY_SCOPES):
