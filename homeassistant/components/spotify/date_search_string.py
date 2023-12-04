@@ -214,6 +214,6 @@ class HolidayDateMapper:
         if user is not None and "country" in user:
             country = user["country"]
         if self.get_current_holiday(hass) == NO_HOLIDAY:
-            return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
+            return f"{self.get_season(country, current_date)} {self.get_month(current_date)} {self.get_day_of_week(current_date)}"
 
         return f"{self.get_current_holiday(hass)}"
