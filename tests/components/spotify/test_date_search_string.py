@@ -381,3 +381,13 @@ def test_search_string_date(
     result = holiday_date_mapper.search_string_date(hass, user)
 
     assert result == "Summer July Friday"
+
+    with pytest.raises(ValueError, match="No user provided"):
+        holiday_date_mapper.search_string_date(hass, None)
+
+    user = {" ": " "}
+
+    with pytest.raises(
+        AttributeError, match="The user does not have a country provided"
+    ):
+        holiday_date_mapper.search_string_date(hass, user)
