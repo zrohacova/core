@@ -164,7 +164,7 @@ class HolidayDateMapper:
         holiday_start_time: datetime | None,
         holiday_title: str,
     ):
-        """Check if the holiday starts within a week. Raises error if there is not info about a holiday's start and end time."""
+        """Check if the holiday starts within the specified timeframe in days. Raises error if there is not info about a holiday's start and end time."""
         if calendar_holiday_state is None:
             return False
 
@@ -174,18 +174,10 @@ class HolidayDateMapper:
             )
         current_date = dt_util.now().date()
 
-        if self.time_unit == "days":
-            timeframe_before_holiday = holiday_start_time.date() - timedelta(
-                days=self.timeframe
-            )
-        elif self.time_unit == "weeks":
-            timeframe_before_holiday = holiday_start_time.date() - timedelta(
-                weeks=self.timeframe
-            )
-        else:
-            raise ValueError(
-                f"Time unit {self.time_unit} is not supported. Please choose 'days' or 'weeks'."
-            )
+        # Calculate the timeframe before the holiday
+        timeframe_before_holiday = holiday_start_time.date() - timedelta(
+            days=self.timeframe
+        )
 
         if timeframe_before_holiday <= current_date <= holiday_end_time.date():
             return True
