@@ -8,12 +8,12 @@ from deep_translator import GoogleTranslator
 import geocoder
 import requests
 
-from homeassistant.core import HomeAssistant, State
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import NO_HOLIDAY
-from .recommendation_handling import RecommendationHandler
 
 
 class HolidayDateMapper:
@@ -106,7 +106,7 @@ class HolidayDateMapper:
     def get_current_holiday(self, hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
 
-        calendar_entity_ids = RecommendationHandler.get_entity_ids(hass, "calendar")
+        calendar_entity_ids = self.get_entity_ids(hass, "calendar")
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -136,8 +136,8 @@ class HolidayDateMapper:
                         ". Make sure it is activated in your Google Calendar, or remove it from your HomeAssistant",
                     )
 
-                start_time_this_holiday = datetime.strptime(
-                    holiday["start_time"], "%Y-%m-%d %H:%M:%S"
+                start_time_this_holiday = datetime.date(
+                    datetime.strptime(holiday["start_time"], "%Y-%m-%d %H:%M:%S")
                 )
 
                 if (
@@ -145,8 +145,8 @@ class HolidayDateMapper:
                     or holiday_start_time > start_time_this_holiday
                 ):
                     holiday_start_time = start_time_this_holiday
-                    holiday_end_time = datetime.strptime(
-                        holiday["end_time"], "%Y-%m-%d %H:%M:%S"
+                    holiday_end_time = datetime.date(
+                        datetime.strptime(holiday["end_time"], "%Y-%m-%d %H:%M:%S")
                     )
                     holiday_title = holiday["message"]
 
@@ -159,10 +159,10 @@ class HolidayDateMapper:
 
     def is_holiday_in_range(
         self,
-        calendar_holiday_state: State | None,
-        holiday_end_time: datetime | None,
-        holiday_start_time: datetime | None,
-        holiday_title: str,
+        calendar_holiday_state,
+        holiday_end_time,
+        holiday_start_time,
+        holiday_title,
     ):
         """Check if the holiday starts within the specified timeframe in days. Raises error if there is not info about a holiday's start and end time."""
         if calendar_holiday_state is None:
@@ -170,7 +170,7 @@ class HolidayDateMapper:
 
         if holiday_end_time is None or holiday_start_time is None:
             raise HomeAssistantError(
-                "Problem with fetching holiday dates for holiday", holiday_title
+                f"Problem with fetching holiday dates for holiday: {holiday_title}"
             )
         current_date = dt_util.now().date()
 
@@ -216,9 +216,20 @@ class HolidayDateMapper:
     def search_string_date(self, hass: HomeAssistant, user: Any):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
-        country = user["country"]
-
+        country = " "
+        if user is not None and "country" in user:
+            country = user["country"]
         if self.get_current_holiday(hass) == NO_HOLIDAY:
             return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
 
         return f"{self.get_current_holiday(hass)}"
+
+    @staticmethod
+    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+        """Retrieve entity id's for connected integrations in the given domain."""
+        entity_reg = er.async_get(hass)
+        return [
+            entity.entity_id
+            for entity in entity_reg.entities.values()
+            if entity.domain == domain
+        ]
