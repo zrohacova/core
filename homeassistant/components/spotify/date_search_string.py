@@ -13,17 +13,16 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .const import NO_HOLIDAY
+from .const import DOMAIN, NO_HOLIDAY
 
 
 class HolidayDateMapper:
     """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
 
-    def __init__(self, timeframe: int = 7, time_unit: str = "days") -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize of the HolidaySeasonMapper."""
-
-        self.timeframe = timeframe
-        self.time_unit = time_unit
+        self.hass = hass
+        self.update_values()
 
         # Mapping of which months at which hemisphere corresponds to what season.
         self.season_hemisphere_mapping = {
@@ -43,6 +42,13 @@ class HolidayDateMapper:
 
         # Mapping of the seasonal changes on the equator.
         self.season_equator_mapping = {...}
+
+    def update_values(self):
+        """Update timeframe values."""
+        # Default to 7 if not set
+        self.timeframe = self.hass.data[DOMAIN].get("timeframe", 7)
+        # Default to "days" if not set
+        self.time_unit = self.hass.data[DOMAIN].get("time_unit", "days")
 
     def get_season(self, country_code: str, current_date: date):
         """Get the season in the given country on the given date."""

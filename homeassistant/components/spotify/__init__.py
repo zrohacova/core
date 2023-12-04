@@ -23,6 +23,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .browse_media import async_browse_media
 from .const import DOMAIN, LOGGER, SPOTIFY_SCOPES
+from .date_search_string import HolidayDateMapper
 from .util import (
     is_spotify_media_type,
     resolve_spotify_media_type,
@@ -137,6 +138,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN]["timeframe"] = timeframe
         hass.data[DOMAIN]["time_unit"] = time_unit
+
+        # Update the HolidayDateMapper instance in hass.data
+        holiday_mapper = hass.data[DOMAIN]["holiday_mapper"]
+        holiday_mapper.update_values()
+
+    # Create an instance of HolidayDateMapper with hass instance
+    hass.data[DOMAIN]["holiday_mapper"] = HolidayDateMapper(hass)
 
     # Register the service set timeframe
     hass.services.async_register(

@@ -60,8 +60,8 @@ class RecommendationHandler:
         """Fetch current weather and map it to search string."""
 
         current_weather_search_string = None
-
-        weather_entity_ids = HolidayDateMapper().get_entity_ids(hass, "weather")
+        holiday_date_mapper = HolidayDateMapper(hass)
+        weather_entity_ids = holiday_date_mapper.get_entity_ids(hass, "weather")
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -197,5 +197,6 @@ class RecommendationHandler:
         self, hass: HomeAssistant, user: Any
     ) -> Optional[str]:
         """Determine the search string for Spotify playlists based on the current date."""
-        search_string = HolidayDateMapper().search_string_date(hass, user)
+        holiday_date_mapper = HolidayDateMapper(hass)
+        search_string = holiday_date_mapper.search_string_date(hass, user)
         return search_string
