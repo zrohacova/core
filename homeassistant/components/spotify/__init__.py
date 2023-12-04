@@ -32,9 +32,7 @@ from .util import (
 PLATFORMS = [Platform.MEDIA_PLAYER]
 SERVICE_SET_TIMEFRAME: Final = "set_timeframe"
 
-_LOGGER = logging.getLogger(__name__)
-
-# Define the schema for your service
+# Schema for set timeframe
 SET_TIMEFRAME_SCHEMA = vol.Schema(
     {
         vol.Required("timeframe"): vol.Coerce(int),
@@ -42,6 +40,7 @@ SET_TIMEFRAME_SCHEMA = vol.Schema(
     }
 )
 
+_LOGGER = logging.getLogger(__name__)
 
 __all__ = [
     "async_browse_media",
@@ -120,15 +119,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session=session,
     )
 
-    # Define the service handler
     async def handle_set_timeframe(call: ServiceCall):
         """Handle the set_timeframe service call."""
         timeframe = call.data.get("timeframe")
         time_unit = call.data.get("time_unit")
+
+        # Ensure timeframe is an integer
+        if timeframe is None:
+            _LOGGER.error("Timeframe is not provided or invalid")
+            return
+
+        # Convert weeks and months to days if needed
+        if time_unit == "weeks":
+            timeframe *= 7  # 1 week = 7 days
+        elif time_unit == "months":
+            timeframe *= 30  # Approximate 1 month as 30 days
+
         hass.data[DOMAIN]["timeframe"] = timeframe
         hass.data[DOMAIN]["time_unit"] = time_unit
 
-    # Register the service
+    # Register the service set timeframe
     hass.services.async_register(
         DOMAIN, SERVICE_SET_TIMEFRAME, handle_set_timeframe, schema=SET_TIMEFRAME_SCHEMA
     )

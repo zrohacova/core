@@ -31,11 +31,11 @@
       "fields": {
         "timeframe": {
           "name": "Timeframe",
-          "description": "The number of days before a holiday to start showing holiday playlists."
+          "description": "The number of time units before a holiday to start showing holiday playlists."
         },
         "time_unit": {
           "name": "Time Unit",
-          "description": "The unit of time to use for the timeframe."
+          "description": "The unit of time for the timeframe."
         }
       }
     }
