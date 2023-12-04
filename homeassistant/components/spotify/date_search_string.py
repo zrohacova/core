@@ -8,7 +8,7 @@ from deep_translator import GoogleTranslator
 import geocoder
 import requests
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
@@ -159,10 +159,10 @@ class HolidayDateMapper:
 
     def is_holiday_in_range(
         self,
-        calendar_holiday_state,
-        holiday_end_time,
-        holiday_start_time,
-        holiday_title,
+        calendar_holiday_state: State | None,
+        holiday_end_time: date | None,
+        holiday_start_time: date | None,
+        holiday_title: str | None,
     ):
         """Check if the holiday starts within the specified timeframe in days. Raises error if there is not info about a holiday's start and end time."""
         if calendar_holiday_state is None:
@@ -175,11 +175,9 @@ class HolidayDateMapper:
         current_date = dt_util.now().date()
 
         # Calculate the timeframe before the holiday
-        timeframe_before_holiday = holiday_start_time.date() - timedelta(
-            days=self.timeframe
-        )
+        timeframe_before_holiday = holiday_start_time - timedelta(days=self.timeframe)
 
-        if timeframe_before_holiday <= current_date <= holiday_end_time.date():
+        if timeframe_before_holiday <= current_date <= holiday_end_time:
             return True
 
         return False
