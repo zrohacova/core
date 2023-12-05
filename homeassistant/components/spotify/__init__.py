@@ -132,10 +132,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Convert weeks and months to days if needed
         if time_unit == "weeks":
-            timeframe *= 7  # 1 week = 7 days
+            timeframe *= 7
         elif time_unit == "months":
-            timeframe *= 30  # Approximate 1 month as 30 days
+            timeframe *= 30
 
+        time_unit = "days"
         hass.data[DOMAIN]["timeframe"] = timeframe
         hass.data[DOMAIN]["time_unit"] = time_unit
 
