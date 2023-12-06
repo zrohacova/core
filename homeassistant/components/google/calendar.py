@@ -106,14 +106,6 @@ async def async_setup_entry(
     except ApiException as err:
         raise PlatformNotReady(str(err)) from err
 
-    entity_registry = er.async_get(hass)
-    registry_entries = er.async_entries_for_config_entry(
-        entity_registry, config_entry.entry_id
-    )
-    entity_entry_map = {
-        entity_entry.unique_id: entity_entry for entity_entry in registry_entries
-    }
-
     # Yaml configuration may override objects from the API
     calendars = await hass.async_add_executor_job(
         load_config, hass.config.path(YAML_DEVICES)
@@ -146,34 +138,13 @@ async def async_setup_entry(
             # (e.g. `en.usa#holiday@group.v.calendar.google.com`).
             # When using google_calendars.yaml with multiple entities for a
             # single calendar, we have no way to set a unique id.
-            if num_entities > 1:
-                unique_id = None
-            else:
-                unique_id = f"{config_entry.unique_id}-{calendar_id}"
-            # Migrate to new unique_id format which supports
-            # multiple config entries as of 2022.7
-            for old_unique_id in (calendar_id, f"{calendar_id}-{entity_name}"):
-                if not (entity_entry := entity_entry_map.get(old_unique_id)):
-                    continue
-                if unique_id:
-                    _LOGGER.debug(
-                        "Migrating unique_id for %s from %s to %s",
-                        entity_entry.entity_id,
-                        old_unique_id,
-                        unique_id,
-                    )
-                    entity_registry.async_update_entity(
-                        entity_entry.entity_id, new_unique_id=unique_id
-                    )
-                else:
-                    _LOGGER.debug(
-                        "Removing entity registry entry for %s from %s",
-                        entity_entry.entity_id,
-                        old_unique_id,
-                    )
-                    entity_registry.async_remove(
-                        entity_entry.entity_id,
-                    )
+            unique_id = (
+                None if num_entities > 1 else f"{config_entry.unique_id}-{calendar_id}"
+            )
+            migrate_to_new_unique_id(
+                hass, config_entry, unique_id, calendar_id, entity_name
+            )
+
             coordinator: CalendarSyncUpdateCoordinator | CalendarQueryUpdateCoordinator
             # Prefer calendar sync down of resources when possible. However,
             # sync does not work for search. Also free-busy calendars denormalize
@@ -241,6 +212,45 @@ async def async_setup_entry(
             CREATE_EVENT_SCHEMA,
             async_create_event,
         )
+
+
+def migrate_to_new_unique_id(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    unique_id: str | None,
+    calendar_id: str,
+    entity_name: str,
+) -> None:
+    """Migrate to new unique_id format which supports multiple config entries as of 2022.7."""
+    entity_registry = er.async_get(hass)
+    registry_entries = er.async_entries_for_config_entry(
+        entity_registry, config_entry.entry_id
+    )
+    entity_entry_map = {
+        entity_entry.unique_id: entity_entry for entity_entry in registry_entries
+    }
+    for old_unique_id in (calendar_id, f"{calendar_id}-{entity_name}"):
+        if not (entity_entry := entity_entry_map.get(old_unique_id)):
+            continue
+        if unique_id:
+            _LOGGER.debug(
+                "Migrating unique_id for %s from %s to %s",
+                entity_entry.entity_id,
+                old_unique_id,
+                unique_id,
+            )
+            entity_registry.async_update_entity(
+                entity_entry.entity_id, new_unique_id=unique_id
+            )
+        else:
+            _LOGGER.debug(
+                "Removing entity registry entry for %s from %s",
+                entity_entry.entity_id,
+                old_unique_id,
+            )
+            entity_registry.async_remove(
+                entity_entry.entity_id,
+            )
 
 
 class CalendarSyncUpdateCoordinator(DataUpdateCoordinator[Timeline]):
