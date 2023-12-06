@@ -194,13 +194,9 @@ async def async_setup_entry(
     async_add_entities(entities)
 
     if calendars and new_calendars:
-
-        def append_calendars_to_config() -> None:
-            path = hass.config.path(YAML_DEVICES)
-            for calendar in new_calendars:
-                update_config(path, calendar)
-
-        await hass.async_add_executor_job(append_calendars_to_config)
+        await hass.async_add_executor_job(
+            append_calendars_to_config, hass, new_calendars
+        )
 
     platform = entity_platform.async_get_current_platform()
     if (
@@ -212,6 +208,13 @@ async def async_setup_entry(
             CREATE_EVENT_SCHEMA,
             async_create_event,
         )
+
+
+def append_calendars_to_config(hass: HomeAssistant, new_calendars: list) -> None:
+    """Append the path to every calendar to config."""
+    path = hass.config.path(YAML_DEVICES)
+    for calendar in new_calendars:
+        update_config(path, calendar)
 
 
 def migrate_to_new_unique_id(
