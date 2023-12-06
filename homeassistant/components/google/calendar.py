@@ -123,74 +123,17 @@ async def async_setup_entry(
             new_calendars.append(calendar_info)
         # Yaml calendar config may map one calendar to multiple entities
         # with extra options like offsets or search criteria.
-        num_entities = len(calendar_info[CONF_ENTITIES])
-        for data in calendar_info[CONF_ENTITIES]:
-            entity_enabled = data.get(CONF_TRACK, True)
-            if not entity_enabled:
-                _LOGGER.warning(
-                    "The 'track' option in google_calendars.yaml has been deprecated."
-                    " The setting has been imported to the UI, and should now be"
-                    " removed from google_calendars.yaml"
-                )
-            entity_name = data[CONF_DEVICE_ID]
-            # The unique id is based on the config entry and calendar id since
-            # multiple accounts can have a common calendar id
-            # (e.g. `en.usa#holiday@group.v.calendar.google.com`).
-            # When using google_calendars.yaml with multiple entities for a
-            # single calendar, we have no way to set a unique id.
-            unique_id = (
-                None if num_entities > 1 else f"{config_entry.unique_id}-{calendar_id}"
+        entities.extend(
+            get_calendar_entities(
+                calendar_item,
+                calendar_info,
+                config_entry,
+                calendar_id,
+                hass,
+                calendar_service,
+                store,
             )
-            migrate_to_new_unique_id(
-                hass, config_entry, unique_id, calendar_id, entity_name
-            )
-
-            coordinator: CalendarSyncUpdateCoordinator | CalendarQueryUpdateCoordinator
-            # Prefer calendar sync down of resources when possible. However,
-            # sync does not work for search. Also free-busy calendars denormalize
-            # recurring events as individual events which is not efficient for sync
-            support_write = (
-                calendar_item.access_role.is_writer
-                and get_feature_access(hass, config_entry) is FeatureAccess.read_write
-            )
-            if (
-                search := data.get(CONF_SEARCH)
-            ) or calendar_item.access_role == AccessRole.FREE_BUSY_READER:
-                coordinator = CalendarQueryUpdateCoordinator(
-                    hass,
-                    calendar_service,
-                    data[CONF_NAME],
-                    calendar_id,
-                    search,
-                )
-                support_write = False
-            else:
-                request_template = SyncEventsRequest(
-                    calendar_id=calendar_id,
-                    start_time=dt_util.now() + SYNC_EVENT_MIN_TIME,
-                )
-                sync = CalendarEventSyncManager(
-                    calendar_service,
-                    store=ScopedCalendarStore(store, unique_id or entity_name),
-                    request_template=request_template,
-                )
-                coordinator = CalendarSyncUpdateCoordinator(
-                    hass,
-                    sync,
-                    data[CONF_NAME],
-                )
-            entities.append(
-                GoogleCalendarEntity(
-                    coordinator,
-                    calendar_id,
-                    data,
-                    generate_entity_id(ENTITY_ID_FORMAT, entity_name, hass=hass),
-                    unique_id,
-                    entity_enabled,
-                    support_write,
-                )
-            )
-
+        )
     async_add_entities(entities)
 
     if calendars and new_calendars:
@@ -208,6 +151,87 @@ async def async_setup_entry(
             CREATE_EVENT_SCHEMA,
             async_create_event,
         )
+
+
+def get_calendar_entities(
+    calendar_item: Any,
+    calendar_info: Any,
+    config_entry: ConfigEntry,
+    calendar_id: str,
+    hass: HomeAssistant,
+    calendar_service: GoogleCalendarService,
+    store: Any,
+) -> list:
+    """Return all entities mapped to the given calendar_info."""
+    entities = []
+    num_entities = len(calendar_info[CONF_ENTITIES])
+    for data in calendar_info[CONF_ENTITIES]:
+        entity_enabled = data.get(CONF_TRACK, True)
+        if not entity_enabled:
+            _LOGGER.warning(
+                "The 'track' option in google_calendars.yaml has been deprecated."
+                " The setting has been imported to the UI, and should now be"
+                " removed from google_calendars.yaml"
+            )
+        entity_name = data[CONF_DEVICE_ID]
+        # The unique id is based on the config entry and calendar id since
+        # multiple accounts can have a common calendar id
+        # (e.g. `en.usa#holiday@group.v.calendar.google.com`).
+        # When using google_calendars.yaml with multiple entities for a
+        # single calendar, we have no way to set a unique id.
+        unique_id = (
+            None if num_entities > 1 else f"{config_entry.unique_id}-{calendar_id}"
+        )
+        migrate_to_new_unique_id(
+            hass, config_entry, unique_id, calendar_id, entity_name
+        )
+
+        coordinator: CalendarSyncUpdateCoordinator | CalendarQueryUpdateCoordinator
+        # Prefer calendar sync down of resources when possible. However,
+        # sync does not work for search. Also free-busy calendars denormalize
+        # recurring events as individual events which is not efficient for sync
+        support_write = (
+            calendar_item.access_role.is_writer
+            and get_feature_access(hass, config_entry) is FeatureAccess.read_write
+        )
+        if (
+            search := data.get(CONF_SEARCH)
+        ) or calendar_item.access_role == AccessRole.FREE_BUSY_READER:
+            coordinator = CalendarQueryUpdateCoordinator(
+                hass,
+                calendar_service,
+                data[CONF_NAME],
+                calendar_id,
+                search,
+            )
+            support_write = False
+        else:
+            request_template = SyncEventsRequest(
+                calendar_id=calendar_id,
+                start_time=dt_util.now() + SYNC_EVENT_MIN_TIME,
+            )
+            sync = CalendarEventSyncManager(
+                calendar_service,
+                store=ScopedCalendarStore(store, unique_id or entity_name),
+                request_template=request_template,
+            )
+            coordinator = CalendarSyncUpdateCoordinator(
+                hass,
+                sync,
+                data[CONF_NAME],
+            )
+        entities.append(
+            GoogleCalendarEntity(
+                coordinator,
+                calendar_id,
+                data,
+                generate_entity_id(ENTITY_ID_FORMAT, entity_name, hass=hass),
+                unique_id,
+                entity_enabled,
+                support_write,
+            )
+        )
+    return entities
 
 
 def append_calendars_to_config(hass: HomeAssistant, new_calendars: list) -> None:
