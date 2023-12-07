@@ -24,15 +24,36 @@ async def test_singleton_pattern(hass: HomeAssistant) -> None:
     assert handler1 is handler2
 
 
-async def test_generate_date_search_string(hass: HomeAssistant) -> None:
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_season"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_month"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_day_of_week"
+)
+async def test_generate_date_search_string(
+    mock_weekday,
+    mock_month,
+    mock_season,
+    mock_holiday,
+    hass: HomeAssistant,
+) -> None:
     """Test the generation of date-based search strings."""
+    mock_holiday.return_value = "Christmas Eve"
+    mock_season.return_value = "Summer"
+    mock_month.return_value = "December"
+    mock_weekday.return_value = "Sunday"
+
     handler = RecommendationHandler()
     with patch("homeassistant.util.dt.now") as mock_now, patch(
         "homeassistant.components.spotify.recommendation_handling.Spotify"
-    ) as spotify_mock, patch(
-        "homeassistant.components.spotify.recommendation_handling.hass"
-    ):
-        user: dict[str, Any] = {"country": "SE"}
+    ) as spotify_mock:
+        user: dict[str, Any] = {"country": "AU"}
 
         assert spotify_mock
         assert user
@@ -41,7 +62,7 @@ async def test_generate_date_search_string(hass: HomeAssistant) -> None:
 
         search_string = handler._generate_date_search_string(hass, user)
 
-        assert search_string == "winter"
+        assert search_string == "Christmas Eve"
 
 
 async def test_is_new_date(hass: HomeAssistant) -> None:
