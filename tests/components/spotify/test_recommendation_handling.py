@@ -1,5 +1,6 @@
 """Test Spotify Recommendation Handler."""
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -26,9 +27,20 @@ async def test_singleton_pattern(hass: HomeAssistant) -> None:
 async def test_generate_date_search_string(hass: HomeAssistant) -> None:
     """Test the generation of date-based search strings."""
     handler = RecommendationHandler()
-    with patch("homeassistant.util.dt.now") as mock_now:
+    with patch("homeassistant.util.dt.now") as mock_now, patch(
+        "homeassistant.components.spotify.recommendation_handling.Spotify"
+    ) as spotify_mock, patch(
+        "homeassistant.components.spotify.recommendation_handling.hass"
+    ):
+        user: dict[str, Any] = {"country": "SE"}
+
+        assert spotify_mock
+        assert user
+
         mock_now.return_value = dt_util.now().replace(month=12, day=25)
-        search_string = handler._generate_date_search_string()
+
+        search_string = handler._generate_date_search_string(hass, user)
+
         assert search_string == "winter"
 
 

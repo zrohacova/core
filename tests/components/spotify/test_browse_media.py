@@ -30,7 +30,9 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
         # 12: ["weather_playlist", "Weather Playlists"],
     }
 
-    with patch("homeassistant.components.spotify.config_flow.Spotify") as spotify_mock:
+    with patch(
+        "homeassistant.components.spotify.config_flow.Spotify"
+    ) as spotify_mock, patch("homeassistant.components.spotify.browse_media.Spotify"):
         user: dict[str, Any] = {"country": "SE"}
         can_play_artist = True
 

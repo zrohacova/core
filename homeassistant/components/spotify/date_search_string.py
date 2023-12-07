@@ -210,11 +210,16 @@ class HolidayDateMapper:
     def search_string_date(self, hass: HomeAssistant, user: Any):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
-        country = " "
-        if user is not None and "country" in user:
-            country = user["country"]
+
         if self.get_current_holiday(hass) == NO_HOLIDAY:
-            return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
+            if user is None:
+                raise ValueError("No user provided")
+
+            if "country" not in user:
+                raise AttributeError("The user does not have a country provided")
+
+            country = user["country"]
+            return f"{self.get_season(country, current_date)} {self.get_month(current_date)} {self.get_day_of_week(current_date)}"
 
         return f"{self.get_current_holiday(hass)}"
 

@@ -337,3 +337,57 @@ def test_get_next_holiday(
         result = holiday_date_mapper.get_current_holiday(mock_hass)
 
         assert result == ANOTHER_HOLIDAY_TITLE
+
+
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_season"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_month"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_day_of_week"
+)
+def test_search_string_date(
+    mock_weekday,
+    mock_month,
+    mock_season,
+    mock_holiday,
+    hass: HomeAssistant,
+    holiday_date_mapper: HolidayDateMapper,
+) -> None:
+    """Test generated search string."""
+    mock_holiday.return_value = "Christmas Eve"
+    mock_season.return_value = "Winter"
+    mock_month.return_value = "December"
+    mock_weekday.return_value = "Sunday"
+
+    user = {"country": "a country"}
+
+    result = holiday_date_mapper.search_string_date(hass, user)
+
+    assert result == "Christmas Eve"
+
+    mock_holiday.return_value = "No holiday"
+    mock_season.return_value = "Summer"
+    mock_month.return_value = "July"
+    mock_weekday.return_value = "Friday"
+
+    user = {"country": "a country"}
+
+    result = holiday_date_mapper.search_string_date(hass, user)
+
+    assert result == "Summer July Friday"
+
+    with pytest.raises(ValueError, match="No user provided"):
+        holiday_date_mapper.search_string_date(hass, None)
+
+    user = {" ": " "}
+
+    with pytest.raises(
+        AttributeError, match="The user does not have a country provided"
+    ):
+        holiday_date_mapper.search_string_date(hass, user)
