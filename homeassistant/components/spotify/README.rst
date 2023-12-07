@@ -26,7 +26,7 @@ Get an API Key
 ^^^^^^^^^^^^^^
 
 - Visit the `AccuWeather APIs page <https://developer.accuweather.com/apis>`_.
-- Sign up for an account and create an application with the following settings:
+- Sign up for an account, and get an API key by creating an application with the following settings:
 
     - Products
         - Core Weather
