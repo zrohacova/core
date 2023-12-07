@@ -26,7 +26,23 @@ Get an API Key
 ^^^^^^^^^^^^^^
 
 - Visit the `AccuWeather APIs page <https://developer.accuweather.com/apis>`_.
-- Sign up for an account and follow the instructions to generate your API key.
+- Sign up for an account and create an application with the following settings:
+
+    - Products
+        - Core Weather
+            Core Weather Limited Trial
+        - Minute Cast
+            None
+    - Where will the API be used?
+        Other
+    - What will you be creating with this API?
+        Internal App
+    - What programming language is your APP written in?  
+        Python
+    - Is this for Business to Business or Business to Consumer use?
+        Business to Business
+    - Is this Worldwide or Country specific use?
+        Worldwide
 
 Configure the Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^^
