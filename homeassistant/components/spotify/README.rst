@@ -26,7 +26,7 @@ Get an API Key
         Other
     - What will you be creating with this API?
         Internal App
-    - What programming language is your APP written in?  
+    - What programming language is your APP written in?
         Python
     - Is this for Business to Business or Business to Consumer use?
         Business to Business
@@ -46,11 +46,13 @@ Configure the Integration
 Playlist Recommendations Based on Holiday
 =============================
 
-The Spotify integration now contains a feature where users can receive playlist recommendations based on the date. This means that if a holiday is within a timeframe that you can select for yourself, the playlist recommendations are based on this holiday. If there is no holiday in the selected timeframe, the recommendations will be based on the current season, month, and weekday. To fetch the holidays of the desired country/countries, Google Calendar needs to be configured. This is done in the following steps: 
+The Spotify integration now contains a feature where users can receive playlist recommendations based on the date. This means that if a holiday is within a timeframe that you can select for yourself, the playlist recommendations are based on this holiday. If there is no holiday in the selected timeframe, the recommendations will be based on the current season, month, and weekday. In the current version, there remains a limitation regarding the season of the user’s country location. The season recommendation works for the countries having the four seasons winter, summer, autumn and spring. However, it remains as future work to expand the solution for finding accurate seasons for countries located at the poles, or in the tropical/subtropical regions.
 
-1. Visit https://calendar.google.com/calendar/ and make sure to be logged in 
+In order to fetch the holidays of the desired country/countries, Google Calendar needs to be configured. This is done in the following steps:
+
+1. Visit https://calendar.google.com/calendar/ and make sure to be logged in
 2. Add regional holiday calendars by pressing the "+" next to “Other calendars” in the lower left corner, and choosing “Browse calendars of interest”
-3. Select the regions of interest 
-4. Configure Google Calendar in HomeAssistant by following this tutorial: https://www.youtube.com/watch?v=r2WbpxKDOD4 from 1:30 - 6:40 
+3. Select the regions of interest
+4. Configure Google Calendar in HomeAssistant by following this tutorial: https://www.youtube.com/watch?v=r2WbpxKDOD4 from 1:30 - 6:40
 
-Done! 
+Done!
