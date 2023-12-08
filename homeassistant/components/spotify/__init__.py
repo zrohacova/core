@@ -138,7 +138,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         time_unit = "days"
 
-        if timeframe != hass.data[DOMAIN]["timeframe"]:
+        if timeframe != hass.data[DOMAIN].get("timeframe"):
             hass.data[DOMAIN]["timeframe_updated"] = "TRUE"
 
         hass.data[DOMAIN]["timeframe"] = timeframe

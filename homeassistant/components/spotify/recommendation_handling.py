@@ -129,6 +129,7 @@ class RecommendationHandler:
 
             # Fetch playlists if the date has changed since the last API call or issue with previous API call
             if self._is_new_date(hass, current_date):
+                hass.data[DOMAIN]["timeframe_updated"] = "FALSE"
                 return self._fetch_spotify_playlists(
                     spotify, current_date_search_string, current_date
                 )
