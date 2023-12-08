@@ -144,13 +144,22 @@ class RecommendationHandler:
             ) from e
         except ValueError as e:
             _LOGGER.error("Value error encountered: %s", e)
+        except AttributeError as e:
+            _LOGGER.error("Attribute error encountered: %s", e)
 
         return None, []
 
     def _generate_date_search_string(self, hass: HomeAssistant, user: Any) -> str:
         """Generate a search string based on the current date."""
-        # Implement logic to dynamically generate the search string based on the current date
-        search_string = self.determine_search_string_based_on_date(hass, user)
+        try:
+            search_string = HolidayDateMapper().search_string_date(hass, user)
+
+        except ValueError as e:
+            raise ValueError("Error generating search string: No user provided") from e
+        except AttributeError as e:
+            raise AttributeError(
+                "Error generating search string: The user does not have a country provided"
+            ) from e
 
         if search_string is None:
             raise HomeAssistantError(
@@ -192,10 +201,3 @@ class RecommendationHandler:
         self._media = media
 
         return media, items
-
-    def determine_search_string_based_on_date(
-        self, hass: HomeAssistant, user: Any
-    ) -> Optional[str]:
-        """Determine the search string for Spotify playlists based on the current date."""
-        search_string = HolidayDateMapper().search_string_date(hass, user)
-        return search_string

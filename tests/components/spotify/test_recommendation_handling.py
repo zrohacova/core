@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 from spotipy.exceptions import SpotifyException
 
+from homeassistant.components.spotify.const import NO_HOLIDAY
 from homeassistant.components.spotify.recommendation_handling import (
     BROWSE_LIMIT,
     RecommendationHandler,
@@ -43,13 +44,14 @@ async def test_generate_date_search_string(
     mock_holiday,
     hass: HomeAssistant,
 ) -> None:
-    """Test the generation of date-based search strings."""
+    """Test the connection of modules resposinble for generation of date-based search strings."""
     mock_holiday.return_value = "Christmas Eve"
     mock_season.return_value = "Summer"
     mock_month.return_value = "December"
     mock_weekday.return_value = "Sunday"
 
     handler = RecommendationHandler()
+
     with patch("homeassistant.util.dt.now") as mock_now, patch(
         "homeassistant.components.spotify.recommendation_handling.Spotify"
     ) as spotify_mock:
@@ -63,6 +65,37 @@ async def test_generate_date_search_string(
         search_string = handler._generate_date_search_string(hass, user)
 
         assert search_string == "Christmas Eve"
+
+
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_season"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_month"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_day_of_week"
+)
+async def test_generate_search_string_error_propagation(
+    mock_weekday,
+    mock_month,
+    mock_season,
+    mock_holiday,
+    hass: HomeAssistant,
+) -> None:
+    """Test that raised errors are handled correctly when propagated between modules."""
+    mock_holiday.return_value = NO_HOLIDAY
+    mock_season.return_value = "Summer"
+    mock_month.return_value = "July"
+    mock_weekday.return_value = "Sunday"
+
+    handler = RecommendationHandler()
+
+    with pytest.raises(ValueError):
+        handler._generate_date_search_string(hass, None)
 
 
 async def test_is_new_date(hass: HomeAssistant) -> None:
