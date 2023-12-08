@@ -10,7 +10,6 @@ import requests
 
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import NO_HOLIDAY
@@ -100,10 +99,8 @@ class HolidayDateMapper:
 
         return hemisphere
 
-    def get_current_holiday(self, hass: HomeAssistant):
+    def get_current_holiday(self, calendar_entity_ids: list[str], hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
-
-        calendar_entity_ids = self.get_entity_ids(hass, "calendar")
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -207,11 +204,13 @@ class HolidayDateMapper:
         except ValueError:
             return "Invalid date provided."
 
-    def search_string_date(self, hass: HomeAssistant, user: Any):
+    def search_string_date(
+        self, calendar_entity_ids: list[str], hass: HomeAssistant, user: Any
+    ):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
 
-        if self.get_current_holiday(hass) == NO_HOLIDAY:
+        if self.get_current_holiday(calendar_entity_ids, hass) == NO_HOLIDAY:
             if user is None:
                 raise ValueError("No user provided")
 
@@ -221,14 +220,4 @@ class HolidayDateMapper:
             country = user["country"]
             return f"{self.get_season(country, current_date)} {self.get_month(current_date)} {self.get_day_of_week(current_date)}"
 
-        return f"{self.get_current_holiday(hass)}"
-
-    @staticmethod
-    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
-        """Retrieve entity id's for connected integrations in the given domain."""
-        entity_reg = er.async_get(hass)
-        return [
-            entity.entity_id
-            for entity in entity_reg.entities.values()
-            if entity.domain == domain
-        ]
+        return f"{self.get_current_holiday(calendar_entity_ids, hass)}"

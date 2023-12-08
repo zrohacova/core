@@ -7,6 +7,10 @@ import pytest
 
 from homeassistant.components.spotify.const import NO_HOLIDAY
 from homeassistant.components.spotify.date_search_string import HolidayDateMapper
+from homeassistant.components.spotify.recommendation_handling import (
+    RecommendationHandler,
+    RecommendedPlaylistDomains,
+)
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 
@@ -118,26 +122,25 @@ def test_no_google_calendar_setup(
     hass: HomeAssistant, holiday_date_mapper: HolidayDateMapper
 ) -> None:
     """Test that no holiday is returned when no google calendar is set up when fetching holidays."""
-    result = holiday_date_mapper.get_current_holiday(hass)
+    calendar_entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    result = holiday_date_mapper.get_current_holiday(calendar_entity_ids, hass)
 
     assert result == NO_HOLIDAY
 
 
 @patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
-@patch(
-    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_entity_ids"
-)
 def test_no_holiday_calendar(
-    mock_get_entity_ids,
     mock_translate,
     hass: HomeAssistant,
     holiday_date_mapper: HolidayDateMapper,
 ) -> None:
     """Test that no holiday is returned when no holiday calendar is set up when fetching holidays."""
-    mock_get_entity_ids.return_value = ["calendar.a_calendar"]
     mock_translate.return_value = "a_calendar"
 
-    result = holiday_date_mapper.get_current_holiday(hass)
+    calendar_entity_ids = ["calendar.a_calendar"]
+    result = holiday_date_mapper.get_current_holiday(calendar_entity_ids, hass)
 
     assert result == NO_HOLIDAY
 
@@ -232,17 +235,13 @@ def test_is_holiday_in_range(
 
 @patch("homeassistant.components.spotify.date_search_string.dt_util.now")
 @patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
-@patch(
-    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_entity_ids"
-)
 def test_get_current_holiday(
-    mock_get_entity_ids,
     mock_translate,
     mock_today,
     holiday_date_mapper: HolidayDateMapper,
 ) -> None:
     """Test that a holiday title is returned if there is an upcoming holiday."""
-    mock_get_entity_ids.return_value = ["calendar.a_holiday_calendar"]
+    calendar_entity_ids = ["calendar.a_holiday_calendar"]
     mock_translate.return_value = "a_holiday_calendar"
     mock_today.return_value = datetime(2023, 11, 9, 12, 0, 0)
 
@@ -259,24 +258,20 @@ def test_get_current_holiday(
 
     with patch.object(mock_hass.states, "get") as mock_states_get:
         mock_states_get.return_value = calendar_holiday_state
-        result = holiday_date_mapper.get_current_holiday(mock_hass)
+        result = holiday_date_mapper.get_current_holiday(calendar_entity_ids, mock_hass)
 
         assert result == A_HOLIDAY_TITLE
 
 
 @patch("homeassistant.components.spotify.date_search_string.dt_util.now")
 @patch("homeassistant.components.spotify.date_search_string.GoogleTranslator.translate")
-@patch(
-    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_entity_ids"
-)
 def test_get_next_holiday(
-    mock_get_entity_ids,
     mock_translate,
     mock_today,
     holiday_date_mapper: HolidayDateMapper,
 ) -> None:
     """Test that the next holiday title is returned."""
-    mock_get_entity_ids.return_value = [
+    calendar_entity_ids = [
         "calendar.a_holiday_calendar",
         "calendar.another_holiday_calendar",
     ]
@@ -310,7 +305,7 @@ def test_get_next_holiday(
             mock_calendar_holiday_state_1,
             mock_calendar_holiday_state_2,
         ]
-        result = holiday_date_mapper.get_current_holiday(mock_hass)
+        result = holiday_date_mapper.get_current_holiday(calendar_entity_ids, mock_hass)
 
         assert result == A_HOLIDAY_TITLE
 
@@ -334,7 +329,7 @@ def test_get_next_holiday(
             mock_calendar_holiday_state_1,
             mock_calendar_holiday_state_2,
         ]
-        result = holiday_date_mapper.get_current_holiday(mock_hass)
+        result = holiday_date_mapper.get_current_holiday(calendar_entity_ids, mock_hass)
 
         assert result == ANOTHER_HOLIDAY_TITLE
 
@@ -366,8 +361,9 @@ def test_search_string_date(
     mock_weekday.return_value = "Sunday"
 
     user = {"country": "a country"}
+    calendar_entity_ids = ["calendar.a_calendar"]
 
-    result = holiday_date_mapper.search_string_date(hass, user)
+    result = holiday_date_mapper.search_string_date(calendar_entity_ids, hass, user)
 
     assert result == "Christmas Eve"
 
@@ -378,16 +374,16 @@ def test_search_string_date(
 
     user = {"country": "a country"}
 
-    result = holiday_date_mapper.search_string_date(hass, user)
+    result = holiday_date_mapper.search_string_date(calendar_entity_ids, hass, user)
 
     assert result == "Summer July Friday"
 
     with pytest.raises(ValueError, match="No user provided"):
-        holiday_date_mapper.search_string_date(hass, None)
+        holiday_date_mapper.search_string_date(calendar_entity_ids, hass, None)
 
     user = {" ": " "}
 
     with pytest.raises(
         AttributeError, match="The user does not have a country provided"
     ):
-        holiday_date_mapper.search_string_date(hass, user)
+        holiday_date_mapper.search_string_date(calendar_entity_ids, hass, user)

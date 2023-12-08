@@ -1,4 +1,5 @@
 """Provides handling for Spotify playlist recommendations in Home Assistant based on weather conditions and dates."""
+from enum import Enum
 import logging
 from typing import Any, Optional
 
@@ -6,6 +7,7 @@ from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .date_search_string import HolidayDateMapper
@@ -15,6 +17,13 @@ from .weather_search_string import WeatherPlaylistMapper
 BROWSE_LIMIT = 48
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class RecommendedPlaylistDomains(Enum):
+    """Enum for integration domains used to recommended playlists."""
+
+    CALENDAR = "calendar"
+    WEATHER = "weather"
 
 
 class RecommendationHandler:
@@ -61,7 +70,9 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_ids = HolidayDateMapper().get_entity_ids(hass, "weather")
+        weather_entity_ids = self.get_entity_ids(
+            hass, RecommendedPlaylistDomains.WEATHER
+        )
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -151,8 +162,13 @@ class RecommendationHandler:
 
     def _generate_date_search_string(self, hass: HomeAssistant, user: Any) -> str:
         """Generate a search string based on the current date."""
+        calendar_entity_ids = self.get_entity_ids(
+            hass, RecommendedPlaylistDomains.CALENDAR
+        )
         try:
-            search_string = HolidayDateMapper().search_string_date(hass, user)
+            search_string = HolidayDateMapper().search_string_date(
+                calendar_entity_ids, hass, user
+            )
 
         except ValueError as e:
             raise ValueError("Error generating search string: No user provided") from e
@@ -201,3 +217,15 @@ class RecommendationHandler:
         self._media = media
 
         return media, items
+
+    @staticmethod
+    def get_entity_ids(
+        hass: HomeAssistant, domain: RecommendedPlaylistDomains
+    ) -> list[str]:
+        """Retrieve entity id's for connected integrations in the given domain."""
+        entity_reg = er.async_get(hass)
+        return [
+            entity.entity_id
+            for entity in entity_reg.entities.values()
+            if entity.domain == domain.value
+        ]
