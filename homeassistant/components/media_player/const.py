@@ -74,6 +74,8 @@ class MediaClass(StrEnum):
     TV_SHOW = "tv_show"
     URL = "url"
     VIDEO = "video"
+    WEATHER_PLAYLIST = "weather_playlist"
+    DATE_PLAYLIST = "date_playlist"
 
 
 # These MEDIA_CLASS_* constants are deprecated as of Home Assistant 2022.10.
@@ -98,6 +100,8 @@ MEDIA_CLASS_TRACK = "track"
 MEDIA_CLASS_TV_SHOW = "tv_show"
 MEDIA_CLASS_URL = "url"
 MEDIA_CLASS_VIDEO = "video"
+MEDIA_CLASS_WEATHER_PLAYLIST = "weather_playlist"
+MEDIA_CLASS_DATE_PLAYLIST = "date_playlist"
 
 
 class MediaType(StrEnum):
@@ -124,6 +128,8 @@ class MediaType(StrEnum):
     TVSHOW = "tvshow"
     URL = "url"
     VIDEO = "video"
+    WEATHER_PLAYLIST = "weather_playlist"
+    DATE_PLAYLIST = "date_playlist"
 
 
 # These MEDIA_TYPE_* constants are deprecated as of Home Assistant 2022.10.
@@ -149,6 +155,8 @@ MEDIA_TYPE_TRACK = "track"
 MEDIA_TYPE_TVSHOW = "tvshow"
 MEDIA_TYPE_URL = "url"
 MEDIA_TYPE_VIDEO = "video"
+MEDIA_TYPE_WEATHER_PLAYLIST = "weather_playlist"
+MEDIA_TYPE_DATE_PLAYLIST = "date_playlist"
 
 SERVICE_CLEAR_PLAYLIST = "clear_playlist"
 SERVICE_JOIN = "join"
