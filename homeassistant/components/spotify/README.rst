@@ -11,17 +11,6 @@ Playlist Recommendations Based on Weather
 
 This integration provides dynamic playlist recommendations based on the current weather conditions where the Home Assistant is set up. To make this work, you'll need to set up the AccuWeather integration in your Home Assistant. Here's how to get started:
 
-Prerequisites
--------------
-
-Before you begin, make sure you have:
-
-- A Home Assistant installation.
-- An API key from AccuWeather.
-
-Setup AccuWeather Integration in Home Assistant
------------------------------------------------
-
 Get an API Key
 ^^^^^^^^^^^^^^
 
