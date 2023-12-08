@@ -17,7 +17,7 @@ ANOTHER_HOLIDAY_TITLE = "another holiday title"
 @pytest.fixture
 def holiday_date_mapper():
     """Fixture for initializing the HolidayDateMapper."""
-    return HolidayDateMapper()
+    return HolidayDateMapper(hass=MagicMock())
 
 
 def test_init_valid_season_mapper(holiday_date_mapper: HolidayDateMapper) -> None:
@@ -202,6 +202,9 @@ def test_is_holiday_in_range(
     # set today to 28 nov
     mock_today.return_value = datetime(2023, 11, 28, 12, 0, 0)
 
+    # set the timeframe attribute to a numeric value
+    holiday_date_mapper.timeframe = 7
+
     holiday_title = "some holiday"
     calendar_state = State("calendar.some_calendar", "state")
 
@@ -246,6 +249,9 @@ def test_get_current_holiday(
     mock_translate.return_value = "a_holiday_calendar"
     mock_today.return_value = datetime(2023, 11, 9, 12, 0, 0)
 
+    # Set the timeframe attribute to a numeric value
+    holiday_date_mapper.timeframe = 7
+
     mock_hass = MagicMock()
     calendar_holiday_state = MagicMock()
 
@@ -283,6 +289,9 @@ def test_get_next_holiday(
     mock_translate.return_value = "holiday"
 
     mock_hass = MagicMock()
+
+    # Set the timeframe attribute to a numeric value
+    holiday_date_mapper.timeframe = 7
 
     # mock two holidays
     mock_calendar_holiday_state_1 = MagicMock()
