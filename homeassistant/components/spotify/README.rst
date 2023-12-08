@@ -46,7 +46,9 @@ Configure the Integration
 Playlist Recommendations Based on Holiday
 =============================
 
-The Spotify integration now contains a feature where users can receive playlist recommendations based on the date. This means that if a holiday is within a timeframe that you can select for yourself, the playlist recommendations are based on this holiday. If there is no holiday in the selected timeframe, the recommendations will be based on the current season, month, and weekday. In the current version, there remains a limitation regarding the season of the user’s country location. The season recommendation works for the countries having the four seasons winter, summer, autumn and spring. However, it remains as future work to expand the solution for finding accurate seasons for countries located at the poles, or in the tropical/subtropical regions.
+The Spotify integration now contains a feature where users can receive playlist recommendations based on the date. This means that if a holiday is within a timeframe that you can select for yourself, the playlist recommendations are based on this holiday. If there is no holiday in the selected timeframe, the recommendations will be based on the current season, month, and weekday.
+
+In the current version, there remains a limitation regarding the season of the user’s country location. The season recommendation works for the countries having the four seasons winter, summer, autumn and spring. However, it remains as future work to expand the solution for finding accurate seasons for countries located at the poles, or in the tropical/subtropical regions.
 
 In order to fetch the holidays of the desired country/countries, Google Calendar needs to be configured. This is done in the following steps:
 
