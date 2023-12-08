@@ -5,6 +5,9 @@ from unittest.mock import patch
 
 from homeassistant.components.media_player.browse_media import BrowseMedia
 from homeassistant.components.spotify.browse_media import build_item_response
+from homeassistant.components.spotify.recommendation_handling import (
+    RecommendationHandler,
+)
 from homeassistant.core import HomeAssistant
 
 
@@ -26,7 +29,7 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
         8: ["categories", "Categories"],
         9: ["featured_playlists", "Featured Playlists"],
         10: ["new_releases", "New Releases"],
-        11: ["date_playlist", "Date Playlists"],
+        # 11: ["date_playlist", "Date Playlists"],
         # 12: ["weather_playlist", "Weather Playlists"],
     }
 
@@ -57,3 +60,37 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
             assert media.media_content_type == f"spotify://{exp_type}"
             assert media.media_content_id == exp_type
             assert media.media_class == "directory"
+
+
+async def test_build_items_date(hass: HomeAssistant) -> None:
+    """Testing browse media with date playlists."""
+    with patch(
+        "homeassistant.components.spotify.config_flow.Spotify"
+    ) as spotify_mock, patch.object(
+        RecommendationHandler,
+        "_generate_date_search_string",
+        return_value="Test Playlist",
+    ):
+        user: dict[str, Any] = {"country": "SE"}
+        can_play_artist = True
+
+        assert spotify_mock
+        assert user
+
+        exp_type = "date_playlist"
+        exp_title = "Date Playlists"
+
+        payload = {
+            "media_content_type": exp_type,
+            "media_content_id": exp_type,
+        }
+
+        media: BrowseMedia = build_item_response(
+            hass, spotify_mock, user, payload, can_play_artist=can_play_artist
+        )
+
+        assert media
+        assert media.title == exp_title
+        assert media.media_content_type == f"spotify://{exp_type}"
+        assert media.media_content_id == exp_type
+        assert media.media_class == "directory"
