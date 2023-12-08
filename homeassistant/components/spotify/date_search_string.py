@@ -22,7 +22,7 @@ class HolidayDateMapper:
     def __init__(self) -> None:
         """Initialize of the HolidaySeasonMapper."""
 
-        # Mapping of which months at which hemisphere corresponds to what season.
+        # Mapping containing the season on given hemisphere during certain months
         self.season_hemisphere_mapping = {
             1: {"Northern": "Winter", "Southern": "Summer"},
             2: {"Northern": "Winter", "Southern": "Summer"},
@@ -38,15 +38,12 @@ class HolidayDateMapper:
             12: {"Northern": "Winter", "Southern": "Summer"},
         }
 
-        # Mapping of the seasonal changes on the equator.
-        self.season_equator_mapping = {...}
-
     def get_season(self, country_code: str, current_date: date):
         """Get the season in the given country on the given date."""
         month = current_date.month
 
         # Convert the country code to the corresponding country name
-        country_name = coco.convert(country_code, to="name")
+        country_name = coco.convert(country_code, to="name").lower()
         if country_name == "not found":
             raise AttributeError(
                 f"Country name not found for given country code {country_code}"
@@ -63,21 +60,18 @@ class HolidayDateMapper:
             raise ConnectionError(f"Connection error during geocoding: {e}") from e
 
         # Get the corresponding seasons to the found country zone and month
-        if location_zone == "Equator":
-            ...
-        else:
-            hemispheres = self.season_hemisphere_mapping.get(month)
-            if not hemispheres:
-                raise ValueError(f"Provided {month} does not exist")
+        hemispheres = self.season_hemisphere_mapping.get(month)
+        if not hemispheres:
+            raise ValueError(f"Provided {month} does not exist")
 
-            season = hemispheres.get(location_zone)
-            if not season:
-                raise ValueError(f"No found season for location zone {location_zone}.")
+        season = hemispheres.get(location_zone)
+        if not season:
+            raise ValueError(f"No found season for location zone {location_zone}.")
 
         return season
 
     def locate_country_zone(self, country_name: str) -> str:
-        """Identify the hemisphere in which the country is located or determine if it is situated on the equator."""
+        """Identify the hemisphere in which the country is located."""
 
         # Get location information of the country given
         try:
@@ -93,8 +87,6 @@ class HolidayDateMapper:
             hemisphere = "Northern"
         elif -90 <= latitude < 0:
             hemisphere = "Southern"
-        elif latitude == 0:
-            hemisphere = "Equator"
         else:
             raise ValueError(f"No result found for the latitude {latitude}.")
 
