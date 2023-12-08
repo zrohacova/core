@@ -16,7 +16,7 @@ from .const import NO_HOLIDAY
 
 
 class HolidayDateMapper:
-    """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
+    """A class to find the current holiday and the season for a certain country and date. It uses these attributes to create a search string for spotify playlists."""
 
     def __init__(self) -> None:
         """Initialize of the HolidaySeasonMapper."""
