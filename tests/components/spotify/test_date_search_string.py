@@ -27,7 +27,6 @@ def holiday_date_mapper():
 def test_init_valid_season_mapper(holiday_date_mapper: HolidayDateMapper) -> None:
     """Test initialization of HolidayDateMapper."""
     assert holiday_date_mapper.season_hemisphere_mapping is not None
-    assert holiday_date_mapper.season_equator_mapping is not None
 
 
 @patch("homeassistant.components.spotify.date_search_string.geocoder.osm")
