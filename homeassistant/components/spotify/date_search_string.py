@@ -13,11 +13,10 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from .const import NO_HOLIDAY
-from .recommendation_handling import RecommendationHandler
 
 
 class HolidayDateMapper:
-    """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
+    """A class to find the current holiday and the season for a certain country and date. It uses these attributes to create a search string for spotify playlists."""
 
     def __init__(self) -> None:
         """Initialize of the HolidaySeasonMapper."""
@@ -92,10 +91,8 @@ class HolidayDateMapper:
 
         return hemisphere
 
-    def get_current_holiday(self, hass: HomeAssistant):
+    def get_current_holiday(self, calendar_entity_ids: list[str], hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
-
-        calendar_entity_ids = RecommendationHandler.get_entity_ids(hass, "calendar")
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -199,11 +196,13 @@ class HolidayDateMapper:
         except ValueError:
             return "Invalid date provided."
 
-    def search_string_date(self, hass: HomeAssistant, user: Any):
+    def search_string_date(
+        self, calendar_entity_ids: list[str], hass: HomeAssistant, user: Any
+    ):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
         current_date = dt_util.now().date()
 
-        if self.get_current_holiday(hass) == NO_HOLIDAY:
+        if self.get_current_holiday(calendar_entity_ids, hass) == NO_HOLIDAY:
             if user is None:
                 raise ValueError("No user provided")
 
@@ -213,4 +212,4 @@ class HolidayDateMapper:
             country = user["country"]
             return f"{self.get_season(country, current_date)} {self.get_month(current_date)} {self.get_day_of_week(current_date)}"
 
-        return f"{self.get_current_holiday(hass)}"
+        return f"{self.get_current_holiday(calendar_entity_ids, hass)}"
