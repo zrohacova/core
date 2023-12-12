@@ -386,3 +386,17 @@ def test_search_string_date(
         AttributeError, match="The user does not have a country provided"
     ):
         holiday_date_mapper.search_string_date(calendar_entity_ids, hass, user)
+
+
+def test_search_string_date_no_calendar_configured(
+    hass: HomeAssistant, holiday_date_mapper: HolidayDateMapper
+) -> None:
+    """Test error is raised when no calendar is configured."""
+    user = {"country": "a country"}
+    calendar_entity_ids = []  # Empty list to simulate no calendar configuration
+
+    with pytest.raises(
+        HomeAssistantError,
+        match="No calendar integration found. Please set up a calendar integration.",
+    ):
+        holiday_date_mapper.search_string_date(calendar_entity_ids, hass, user)

@@ -200,6 +200,13 @@ class HolidayDateMapper:
         self, calendar_entity_ids: list[str], hass: HomeAssistant, user: Any
     ):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
+
+        # Force user to setup a calender_integration
+        if not calendar_entity_ids:
+            raise HomeAssistantError(
+                "No calendar integration found. Please set up a calendar integration."
+            )
+
         current_date = dt_util.now().date()
 
         if self.get_current_holiday(calendar_entity_ids, hass) == NO_HOLIDAY:

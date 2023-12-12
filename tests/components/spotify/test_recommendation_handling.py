@@ -26,6 +26,9 @@ async def test_singleton_pattern(hass: HomeAssistant) -> None:
 
 
 @patch(
+    "homeassistant.components.spotify.recommendation_handling.RecommendationHandler.get_entity_ids"
+)
+@patch(
     "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
 )
 @patch(
@@ -42,9 +45,11 @@ async def test_generate_date_search_string(
     mock_month,
     mock_season,
     mock_holiday,
+    mock_get_entity_ids,
     hass: HomeAssistant,
 ) -> None:
     """Test the connection of modules resposinble for generation of date-based search strings."""
+    mock_get_entity_ids.return_value = ["calendar.a_calendar"]
     mock_holiday.return_value = "Christmas Eve"
     mock_season.return_value = "Summer"
     mock_month.return_value = "December"
@@ -68,6 +73,9 @@ async def test_generate_date_search_string(
 
 
 @patch(
+    "homeassistant.components.spotify.recommendation_handling.RecommendationHandler.get_entity_ids"
+)
+@patch(
     "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
 )
 @patch(
@@ -84,9 +92,11 @@ async def test_generate_search_string_error_propagation(
     mock_month,
     mock_season,
     mock_holiday,
+    mock_get_entity_ids,
     hass: HomeAssistant,
 ) -> None:
-    """Test that errors correctly are propagated between modules."""
+    """Test that raised errors are handled correctly when propagated between modules."""
+    mock_get_entity_ids.return_value = ["calendar.a_calendar"]
     mock_holiday.return_value = NO_HOLIDAY
     mock_season.return_value = "Summer"
     mock_month.return_value = "July"
