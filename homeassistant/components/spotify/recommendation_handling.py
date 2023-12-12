@@ -167,17 +167,10 @@ class RecommendationHandler:
         calendar_entity_ids = self.get_entity_ids(
             hass, RecommendedPlaylistDomains.CALENDAR
         )
-        try:
-            search_string = HolidayDateMapper().search_string_date(
-                calendar_entity_ids, hass, user
-            )
 
-        except ValueError as e:
-            raise ValueError("Error generating search string: No user provided") from e
-        except AttributeError as e:
-            raise AttributeError(
-                "Error generating search string: The user does not have a country provided"
-            ) from e
+        search_string = HolidayDateMapper().search_string_date(
+            calendar_entity_ids, hass, user
+        )
 
         if search_string is None:
             raise HomeAssistantError(

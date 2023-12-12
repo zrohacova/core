@@ -86,7 +86,7 @@ async def test_generate_search_string_error_propagation(
     mock_holiday,
     hass: HomeAssistant,
 ) -> None:
-    """Test that raised errors are handled correctly when propagated between modules."""
+    """Test that errors correctly are propagated between modules."""
     mock_holiday.return_value = NO_HOLIDAY
     mock_season.return_value = "Summer"
     mock_month.return_value = "July"
