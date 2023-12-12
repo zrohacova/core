@@ -168,17 +168,7 @@ class RecommendationHandler:
             hass, RecommendedPlaylistDomains.CALENDAR
         )
 
-        search_string = HolidayDateMapper().search_string_date(
-            calendar_entity_ids, hass, user
-        )
-
-        if search_string is None:
-            raise HomeAssistantError(
-                "Oops! It looks like you haven't set up a calendar integration yet. "
-                "Please connect a calendar integration in the settings."
-            )
-
-        return search_string
+        return HolidayDateMapper().search_string_date(calendar_entity_ids, hass, user)
 
     def _is_new_date(self, current_date: str) -> bool:
         """Check if the current date is different from the last API call date or issue with previous API call."""
