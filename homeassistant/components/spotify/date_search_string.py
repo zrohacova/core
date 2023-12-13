@@ -10,21 +10,20 @@ import requests
 
 from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, NO_HOLIDAY
 
 
 class HolidayDateMapper:
-    """A class to find the current holiday for a certain country and date, or season if there is no holiday."""
+    """A class to find the current holiday and the season for a certain country and date. It uses these attributes to create a search string for spotify playlists."""
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize of the HolidaySeasonMapper."""
         self.hass = hass
         self.update_values()
 
-        # Mapping of which months at which hemisphere corresponds to what season.
+        # Mapping containing the season on given hemisphere during certain months
         self.season_hemisphere_mapping = {
             1: {"Northern": "Winter", "Southern": "Summer"},
             2: {"Northern": "Winter", "Southern": "Summer"},
@@ -40,9 +39,6 @@ class HolidayDateMapper:
             12: {"Northern": "Winter", "Southern": "Summer"},
         }
 
-        # Mapping of the seasonal changes on the equator.
-        self.season_equator_mapping = {...}
-
     def update_values(self):
         """Update timeframe values."""
         # Default to 7 if not set
@@ -55,7 +51,7 @@ class HolidayDateMapper:
         month = current_date.month
 
         # Convert the country code to the corresponding country name
-        country_name = coco.convert(country_code, to="name")
+        country_name = coco.convert(country_code, to="name").lower()
         if country_name == "not found":
             raise AttributeError(
                 f"Country name not found for given country code {country_code}"
@@ -72,21 +68,18 @@ class HolidayDateMapper:
             raise ConnectionError(f"Connection error during geocoding: {e}") from e
 
         # Get the corresponding seasons to the found country zone and month
-        if location_zone == "Equator":
-            ...
-        else:
-            hemispheres = self.season_hemisphere_mapping.get(month)
-            if not hemispheres:
-                raise ValueError(f"Provided {month} does not exist")
+        hemispheres = self.season_hemisphere_mapping.get(month)
+        if not hemispheres:
+            raise ValueError(f"Provided {month} does not exist")
 
-            season = hemispheres.get(location_zone)
-            if not season:
-                raise ValueError(f"No found season for location zone {location_zone}.")
+        season = hemispheres.get(location_zone)
+        if not season:
+            raise ValueError(f"No found season for location zone {location_zone}.")
 
         return season
 
     def locate_country_zone(self, country_name: str) -> str:
-        """Identify the hemisphere in which the country is located or determine if it is situated on the equator."""
+        """Identify the hemisphere in which the country is located."""
 
         # Get location information of the country given
         try:
@@ -102,17 +95,13 @@ class HolidayDateMapper:
             hemisphere = "Northern"
         elif -90 <= latitude < 0:
             hemisphere = "Southern"
-        elif latitude == 0:
-            hemisphere = "Equator"
         else:
             raise ValueError(f"No result found for the latitude {latitude}.")
 
         return hemisphere
 
-    def get_current_holiday(self, hass: HomeAssistant):
+    def get_current_holiday(self, calendar_entity_ids: list[str], hass: HomeAssistant):
         """Check if current date is in holiday range, then return current holiday."""
-
-        calendar_entity_ids = self.get_entity_ids(hass, "calendar")
 
         calendar_holiday_state = None
         holiday_start_time = None
@@ -168,9 +157,9 @@ class HolidayDateMapper:
         calendar_holiday_state: State | None,
         holiday_end_time: date | None,
         holiday_start_time: date | None,
-        holiday_title: str | None,
+        holiday_title: str,
     ):
-        """Check if the holiday starts within the specified timeframe in days. Raises error if there is not info about a holiday's start and end time."""
+        """Check if the holiday starts within a week. Raises error if there is not info about a holiday's start and end time."""
         if calendar_holiday_state is None:
             return False
 
@@ -178,6 +167,7 @@ class HolidayDateMapper:
             raise HomeAssistantError(
                 f"Problem with fetching holiday dates for holiday: {holiday_title}"
             )
+
         current_date = dt_util.now().date()
 
         # Calculate the timeframe before the holiday
@@ -217,23 +207,27 @@ class HolidayDateMapper:
         except ValueError:
             return "Invalid date provided."
 
-    def search_string_date(self, hass: HomeAssistant, user: Any):
+    def search_string_date(
+        self, calendar_entity_ids: list[str], hass: HomeAssistant, user: Any
+    ):
         """Generate a search string for the date feature, if there is no holiday, the current season, month and day is returned, otherwise the current holiday."""
+
+        # Force user to setup a calender_integration
+        if not calendar_entity_ids:
+            raise HomeAssistantError(
+                "No calendar integration found. Please set up a calendar integration."
+            )
+
         current_date = dt_util.now().date()
-        country = " "
-        if user is not None and "country" in user:
+
+        if self.get_current_holiday(calendar_entity_ids, hass) == NO_HOLIDAY:
+            if user is None:
+                raise ValueError("No user provided")
+
+            if "country" not in user:
+                raise AttributeError("The user does not have a country provided")
+
             country = user["country"]
-        if self.get_current_holiday(hass) == NO_HOLIDAY:
-            return f"{self.get_season(country, current_date)}, {self.get_month(current_date)}, {self.get_day_of_week(current_date)}"
+            return f"{self.get_season(country, current_date)} {self.get_month(current_date)} {self.get_day_of_week(current_date)}"
 
-        return f"{self.get_current_holiday(hass)}"
-
-    @staticmethod
-    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
-        """Retrieve entity id's for connected integrations in the given domain."""
-        entity_reg = er.async_get(hass)
-        return [
-            entity.entity_id
-            for entity in entity_reg.entities.values()
-            if entity.domain == domain
-        ]
+        return f"{self.get_current_holiday(calendar_entity_ids, hass)}"

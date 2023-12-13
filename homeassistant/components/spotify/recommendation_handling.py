@@ -1,4 +1,5 @@
 """Provides handling for Spotify playlist recommendations in Home Assistant based on weather conditions and dates."""
+from enum import Enum
 import logging
 from typing import Any, Optional
 
@@ -6,6 +7,7 @@ from spotipy import Spotify, SpotifyException
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -16,6 +18,13 @@ from .weather_search_string import WeatherPlaylistMapper
 BROWSE_LIMIT = 48
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class RecommendedPlaylistDomains(Enum):
+    """Enum for integration domains used to recommended playlists."""
+
+    CALENDAR = "calendar"
+    WEATHER = "weather"
 
 
 class RecommendationHandler:
@@ -61,8 +70,10 @@ class RecommendationHandler:
         """Fetch current weather and map it to search string."""
 
         current_weather_search_string = None
-        holiday_date_mapper = HolidayDateMapper(hass)
-        weather_entity_ids = holiday_date_mapper.get_entity_ids(hass, "weather")
+
+        weather_entity_ids = self.get_entity_ids(
+            hass, RecommendedPlaylistDomains.WEATHER
+        )
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -72,12 +83,14 @@ class RecommendationHandler:
                 weather_state is not None
                 and "temperature" in weather_state.attributes
                 and weather_state.state is not None
+                and "temperature_unit" in weather_state.attributes
             ):
                 current_temperature = weather_state.attributes["temperature"]
                 condition = weather_state.state
+                temperature_unit = weather_state.attributes["temperature_unit"]
                 current_weather_search_string = (
                     WeatherPlaylistMapper().map_weather_to_playlists(
-                        current_temperature, condition
+                        current_temperature, condition, temperature_unit
                     )
                 )
             else:
@@ -146,21 +159,20 @@ class RecommendationHandler:
             ) from e
         except ValueError as e:
             _LOGGER.error("Value error encountered: %s", e)
+        except AttributeError as e:
+            _LOGGER.error("Attribute error encountered: %s", e)
 
         return None, []
 
     def _generate_date_search_string(self, hass: HomeAssistant, user: Any) -> str:
         """Generate a search string based on the current date."""
-        # Implement logic to dynamically generate the search string based on the current date
-        search_string = self.determine_search_string_based_on_date(hass, user)
+        calendar_entity_ids = self.get_entity_ids(
+            hass, RecommendedPlaylistDomains.CALENDAR
+        )
 
-        if search_string is None:
-            raise HomeAssistantError(
-                "Oops! It looks like you haven't set up a calendar integration yet. "
-                "Please connect a calendar integration in the settings."
-            )
-
-        return search_string
+        return HolidayDateMapper(hass).search_string_date(
+            calendar_entity_ids, hass, user
+        )
 
     def _is_new_date(self, hass: HomeAssistant, current_date: str) -> bool:
         """Check if the current date is different from the last API call date or issue with previous API call."""
@@ -196,10 +208,14 @@ class RecommendationHandler:
 
         return media, items
 
-    def determine_search_string_based_on_date(
-        self, hass: HomeAssistant, user: Any
-    ) -> Optional[str]:
-        """Determine the search string for Spotify playlists based on the current date."""
-        holiday_date_mapper = HolidayDateMapper(hass)
-        search_string = holiday_date_mapper.search_string_date(hass, user)
-        return search_string
+    @staticmethod
+    def get_entity_ids(
+        hass: HomeAssistant, domain: RecommendedPlaylistDomains
+    ) -> list[str]:
+        """Retrieve entity id's for connected integrations in the given domain."""
+        entity_reg = er.async_get(hass)
+        return [
+            entity.entity_id
+            for entity in entity_reg.entities.values()
+            if entity.domain == domain.value
+        ]
