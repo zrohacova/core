@@ -1,10 +1,12 @@
 """Test Spotify Recommendation Handler."""
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 from spotipy.exceptions import SpotifyException
 
+from homeassistant.components.spotify.const import NO_HOLIDAY
 from homeassistant.components.spotify.recommendation_handling import (
     BROWSE_LIMIT,
     RecommendationHandler,
@@ -13,7 +15,56 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
+from tests.components.accuweather import init_integration
+
 SPOTIFY_MOCK_PATH = "homeassistant.components.spotify.config_flow.Spotify"
+
+
+async def test_handling_weather_recommendations(hass: HomeAssistant) -> None:
+    """Test handling weather recommendations."""
+    handler = RecommendationHandler()
+    await init_integration(hass)
+
+    with patch(SPOTIFY_MOCK_PATH) as spotify_mock, patch(
+        SPOTIFY_MOCK_PATH
+    ) as spotify_mock, patch.object(
+        RecommendationHandler,
+        "_get_current_weather_search_string",
+        return_value="Cold Sunny",
+    ):
+        spotify_mock.search.return_value = {
+            "playlists": {
+                "items": [
+                    {"name": "Sunny Day Playlist 1", "id": "playlist_id_1"},
+                    {"name": "Sunny Day Playlist 2", "id": "playlist_id_2"},
+                ]
+            }
+        }
+
+        media, items = handler.handling_weather_recommendations(hass, spotify_mock)
+
+        assert items
+        assert media
+
+        assert len(items) == 2
+
+
+async def test_no_weather_available(hass: HomeAssistant) -> None:
+    """Test handling no setup weather integration."""
+    handler = RecommendationHandler()
+
+    with patch(SPOTIFY_MOCK_PATH) as spotify_mock:
+        spotify_mock.search.return_value = {
+            "playlists": {
+                "items": [
+                    {"name": "Sunny Day Playlist 1", "id": "playlist_id_1"},
+                    {"name": "Sunny Day Playlist 2", "id": "playlist_id_2"},
+                ]
+            }
+        }
+
+        with pytest.raises(HomeAssistantError):
+            handler.handling_weather_recommendations(hass, spotify_mock)
 
 
 async def test_singleton_pattern(hass: HomeAssistant) -> None:
@@ -23,13 +74,87 @@ async def test_singleton_pattern(hass: HomeAssistant) -> None:
     assert handler1 is handler2
 
 
-async def test_generate_date_search_string(hass: HomeAssistant) -> None:
-    """Test the generation of date-based search strings."""
+@patch(
+    "homeassistant.components.spotify.recommendation_handling.RecommendationHandler.get_entity_ids"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_season"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_month"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_day_of_week"
+)
+async def test_generate_date_search_string(
+    mock_weekday,
+    mock_month,
+    mock_season,
+    mock_holiday,
+    mock_get_entity_ids,
+    hass: HomeAssistant,
+) -> None:
+    """Test the connection of modules resposinble for generation of date-based search strings."""
+    mock_get_entity_ids.return_value = ["calendar.a_calendar"]
+    mock_holiday.return_value = "Christmas Eve"
+    mock_season.return_value = "Summer"
+    mock_month.return_value = "December"
+    mock_weekday.return_value = "Sunday"
+
     handler = RecommendationHandler()
-    with patch("homeassistant.util.dt.now") as mock_now:
+
+    with patch("homeassistant.util.dt.now") as mock_now, patch(
+        "homeassistant.components.spotify.recommendation_handling.Spotify"
+    ) as spotify_mock:
+        user: dict[str, Any] = {"country": "AU"}
+
+        assert spotify_mock
+        assert user
+
         mock_now.return_value = dt_util.now().replace(month=12, day=25)
-        search_string = handler._generate_date_search_string()
-        assert search_string == "winter"
+
+        search_string = handler._generate_date_search_string(hass, user)
+
+        assert search_string == "Christmas Eve"
+
+
+@patch(
+    "homeassistant.components.spotify.recommendation_handling.RecommendationHandler.get_entity_ids"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_current_holiday"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_season"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_month"
+)
+@patch(
+    "homeassistant.components.spotify.date_search_string.HolidayDateMapper.get_day_of_week"
+)
+async def test_generate_search_string_error_propagation(
+    mock_weekday,
+    mock_month,
+    mock_season,
+    mock_holiday,
+    mock_get_entity_ids,
+    hass: HomeAssistant,
+) -> None:
+    """Test that raised errors are handled correctly when propagated between modules."""
+    mock_get_entity_ids.return_value = ["calendar.a_calendar"]
+    mock_holiday.return_value = NO_HOLIDAY
+    mock_season.return_value = "Summer"
+    mock_month.return_value = "July"
+    mock_weekday.return_value = "Sunday"
+
+    handler = RecommendationHandler()
+
+    with pytest.raises(ValueError):
+        handler._generate_date_search_string(hass, None)
 
 
 async def test_is_new_date(hass: HomeAssistant) -> None:
@@ -60,6 +185,7 @@ async def test_handling_date_recommendations_with_mocked_date(
 ) -> None:
     """Test handling date recommendations with a mocked current date."""
     playlist_name = "Christmas Playlist"
+    user: dict[str, Any] = {"country": "SE"}
 
     with patch(SPOTIFY_MOCK_PATH) as spotify_mock, patch.object(
         RecommendationHandler,
@@ -71,7 +197,7 @@ async def test_handling_date_recommendations_with_mocked_date(
             "playlists": {"items": [{"name": playlist_name}]}
         }
 
-        _, items = handler.handling_date_recommendations(spotify_mock)
+        _, items = handler.handling_date_recommendations(spotify_mock, hass, user)
 
         assert spotify_mock.search.called
         assert spotify_mock.search.call_args[1]["q"] == playlist_name
@@ -94,7 +220,9 @@ async def test_handling_date_recommendations_empty_playlist(
         handler._last_api_call_date = ""
 
         with pytest.raises(HomeAssistantError) as excinfo:
-            _, _ = handler.handling_date_recommendations(spotify_mock)
+            _, _ = handler.handling_date_recommendations(
+                spotify_mock, hass, user={"country": "SE"}
+            )
         assert "There was an issue with fetching the playlists" in str(excinfo.value)
 
 
@@ -111,7 +239,9 @@ async def test_handling_date_recommendations_api_error(hass: HomeAssistant) -> N
         handler._last_api_call_date = "2020-06-01"
 
         try:
-            _, _ = handler.handling_date_recommendations(spotify_mock)
+            _, _ = handler.handling_date_recommendations(
+                spotify_mock, hass, user={"country": "SE"}
+            )
             pytest.fail()
         except HomeAssistantError:
             assert spotify_mock.search.called
@@ -130,12 +260,16 @@ async def test_handling_date_recommendations_caching(hass: HomeAssistant) -> Non
 
         handler = RecommendationHandler()
 
-        handler.handling_date_recommendations(spotify_mock)
+        handler.handling_date_recommendations(
+            spotify_mock, hass, user={"country": "SE"}
+        )
         spotify_mock.search.assert_called_once()
 
         spotify_mock.search.reset_mock()
 
-        handler.handling_date_recommendations(spotify_mock)
+        handler.handling_date_recommendations(
+            spotify_mock, hass, user={"country": "SE"}
+        )
         assert not spotify_mock.search.called
 
 
@@ -152,7 +286,9 @@ async def test_handling_api_unexpected_response(hass: HomeAssistant) -> None:
         handler._last_api_call_date = "2023-11-20"
 
         with pytest.raises(HomeAssistantError):
-            _, _ = handler.handling_date_recommendations(spotify_mock)
+            _, _ = handler.handling_date_recommendations(
+                spotify_mock, hass, user={"country": "SE"}
+            )
 
 
 async def test_handling_different_dates(hass: HomeAssistant) -> None:
@@ -170,7 +306,9 @@ async def test_handling_different_dates(hass: HomeAssistant) -> None:
             "playlists": {"items": [{"name": playlist_name}]}
         }
 
-        _, items = handler.handling_date_recommendations(spotify_mock)
+        _, items = handler.handling_date_recommendations(
+            spotify_mock, hass, user={"country": "SE"}
+        )
 
         assert spotify_mock.search.called
         assert spotify_mock.search.call_args[1]["q"] == playlist_name
@@ -191,7 +329,9 @@ async def test_handling_malformed_data_missing_key(hass: HomeAssistant) -> None:
         handler._last_api_call_date = "2023-11-20"
 
         with pytest.raises(HomeAssistantError):
-            _, _ = handler.handling_date_recommendations(spotify_mock)
+            _, _ = handler.handling_date_recommendations(
+                spotify_mock, hass, user={"country": "SE"}
+            )
 
 
 async def test_handling_api_rate_limit_and_downtime(hass: HomeAssistant) -> None:
@@ -209,7 +349,9 @@ async def test_handling_api_rate_limit_and_downtime(hass: HomeAssistant) -> None
         handler._last_api_call_date = "2023-11-20"
 
         with pytest.raises(HomeAssistantError):
-            _, _ = handler.handling_date_recommendations(spotify_mock)
+            _, _ = handler.handling_date_recommendations(
+                spotify_mock, hass, user={"country": "SE"}
+            )
 
 
 async def test_handling_excess_items_from_spotify(hass: HomeAssistant) -> None:
@@ -226,5 +368,7 @@ async def test_handling_excess_items_from_spotify(hass: HomeAssistant) -> None:
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
 
-        _, items = handler.handling_date_recommendations(spotify_mock)
+        _, items = handler.handling_date_recommendations(
+            spotify_mock, hass, user={"country": "SE"}
+        )
         assert len(items) <= BROWSE_LIMIT

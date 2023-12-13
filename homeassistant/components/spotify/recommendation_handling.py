@@ -1,4 +1,5 @@
 """Provides handling for Spotify playlist recommendations in Home Assistant based on weather conditions and dates."""
+from enum import Enum
 import logging
 from typing import Any, Optional
 
@@ -9,12 +10,20 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from .date_search_string import HolidayDateMapper
 from .weather_search_string import WeatherPlaylistMapper
 
 # Limit the number of items fetched from Spotify
 BROWSE_LIMIT = 48
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class RecommendedPlaylistDomains(Enum):
+    """Enum for integration domains used to recommended playlists."""
+
+    CALENDAR = "calendar"
+    WEATHER = "weather"
 
 
 class RecommendationHandler:
@@ -61,7 +70,9 @@ class RecommendationHandler:
 
         current_weather_search_string = None
 
-        weather_entity_ids = self.get_entity_ids(hass, "weather")
+        weather_entity_ids = self.get_entity_ids(
+            hass, RecommendedPlaylistDomains.WEATHER
+        )
         if not weather_entity_ids:
             raise HomeAssistantError("No weather entity available")
         weather_entity_id = weather_entity_ids[0]
@@ -120,12 +131,12 @@ class RecommendationHandler:
         return media, items
 
     def handling_date_recommendations(
-        self, spotify: Spotify
+        self, spotify: Spotify, hass: HomeAssistant, user: Any
     ) -> tuple[Optional[dict[str, Any]], list]:
         """Fetch Spotify playlists for date-based recommendations."""
         try:
             # Generate a search string based on the current date
-            current_date_search_string = self._generate_date_search_string()
+            current_date_search_string = self._generate_date_search_string(hass, user)
             current_date = dt_util.now().date().isoformat()
 
             # Fetch playlists if the date has changed since the last API call or issue with previous API call
@@ -146,21 +157,18 @@ class RecommendationHandler:
             ) from e
         except ValueError as e:
             _LOGGER.error("Value error encountered: %s", e)
+        except AttributeError as e:
+            _LOGGER.error("Attribute error encountered: %s", e)
 
         return None, []
 
-    def _generate_date_search_string(self) -> str:
+    def _generate_date_search_string(self, hass: HomeAssistant, user: Any) -> str:
         """Generate a search string based on the current date."""
-        # Implement logic to dynamically generate the search string based on the current date
-        search_string = self.determine_search_string_based_on_date()
+        calendar_entity_ids = self.get_entity_ids(
+            hass, RecommendedPlaylistDomains.CALENDAR
+        )
 
-        if search_string is None:
-            raise HomeAssistantError(
-                "Oops! It looks like you haven't set up a calendar integration yet. "
-                "Please connect a calendar integration in the settings."
-            )
-
-        return search_string
+        return HolidayDateMapper().search_string_date(calendar_entity_ids, hass, user)
 
     def _is_new_date(self, current_date: str) -> bool:
         """Check if the current date is different from the last API call date or issue with previous API call."""
@@ -195,16 +203,14 @@ class RecommendationHandler:
 
         return media, items
 
-    def determine_search_string_based_on_date(self) -> Optional[str]:
-        """Determine the search string for Spotify playlists based on the current date."""
-        return "winter"
-
     @staticmethod
-    def get_entity_ids(hass: HomeAssistant, domain: str) -> list[str]:
+    def get_entity_ids(
+        hass: HomeAssistant, domain: RecommendedPlaylistDomains
+    ) -> list[str]:
         """Retrieve entity id's for connected integrations in the given domain."""
         entity_reg = er.async_get(hass)
         return [
             entity.entity_id
             for entity in entity_reg.entities.values()
-            if entity.domain == domain
+            if entity.domain == domain.value
         ]
