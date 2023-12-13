@@ -131,34 +131,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
 
         # Convert weeks and months to days if needed
-        timeframe, time_unit = convert_timeframe(timeframe, time_unit)
-
-        update_timeframe_in_hass_data(timeframe)
-
-        # Update time unit in hass data
-        hass.data[DOMAIN]["time_unit"] = time_unit
-
-        # Update the HolidayDateMapper instance in hass.data
-        update_holiday_mapper(hass)
-
-    def convert_timeframe(timeframe, time_unit):
-        """Convert weeks and months to days if needed."""
         if time_unit == "weeks":
             timeframe *= 7
         elif time_unit == "months":
             timeframe *= 30
 
-        return timeframe, "days"
+        time_unit = "days"
 
-    def update_timeframe_in_hass_data(timeframe):
-        """Update timeframe values in hass.data."""
         if timeframe != hass.data[DOMAIN].get("timeframe"):
             hass.data[DOMAIN]["timeframe_updated"] = "TRUE"
 
         hass.data[DOMAIN]["timeframe"] = timeframe
+        hass.data[DOMAIN]["time_unit"] = time_unit
 
-    def update_holiday_mapper(hass: HomeAssistant):
-        """Update the HolidayDateMapper instance in hass.data."""
+        # Update the HolidayDateMapper instance in hass.data
         holiday_mapper = hass.data[DOMAIN]["holiday_mapper"]
         holiday_mapper.update_values()
 
@@ -174,7 +160,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryAuthFailed
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
     return True
 
 
