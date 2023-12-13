@@ -23,5 +23,21 @@
     "info": {
       "api_endpoint_reachable": "Spotify API endpoint reachable"
     }
+  },
+  "services": {
+    "set_timeframe": {
+      "name": "Set Timeframe",
+      "description": "Set the timeframe for the Spotify holiday playlist feature.",
+      "fields": {
+        "timeframe": {
+          "name": "Timeframe",
+          "description": "The number of time units before a holiday to start showing holiday playlists."
+        },
+        "time_unit": {
+          "name": "Time Unit",
+          "description": "The unit of time for the timeframe."
+        }
+      }
+    }
   }
 }
