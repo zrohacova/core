@@ -20,15 +20,22 @@ from tests.components.accuweather import init_integration
 SPOTIFY_MOCK_PATH = "homeassistant.components.spotify.config_flow.Spotify"
 
 
-async def test_handling_weather_recommendations(hass: HomeAssistant) -> None:
+@patch(
+    "homeassistant.components.spotify.recommendation_handling.RecommendationHandler._has_weather_changed"
+)
+async def test_handling_weather_recommendations(
+    mock_has_weather_changed, hass: HomeAssistant
+) -> None:
     """Test handling weather recommendations."""
     handler = RecommendationHandler()
     await init_integration(hass)
 
+    mock_has_weather_changed.return_value = True
+
     with patch(SPOTIFY_MOCK_PATH) as spotify_mock, patch(
         SPOTIFY_MOCK_PATH
     ) as spotify_mock, patch.object(
-        RecommendationHandler,
+        handler,
         "_get_current_weather_search_string",
         return_value="Cold Sunny",
     ):
