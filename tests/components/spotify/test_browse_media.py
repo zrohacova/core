@@ -10,6 +10,8 @@ from homeassistant.components.spotify.recommendation_handling import (
 )
 from homeassistant.core import HomeAssistant
 
+from tests.components.accuweather import init_integration
+
 
 async def test_build_items_directories(hass: HomeAssistant) -> None:
     """Test browse media build items response method."""
@@ -29,8 +31,6 @@ async def test_build_items_directories(hass: HomeAssistant) -> None:
         8: ["categories", "Categories"],
         9: ["featured_playlists", "Featured Playlists"],
         10: ["new_releases", "New Releases"],
-        # 11: ["date_playlist", "Date Playlists"],
-        # 12: ["weather_playlist", "Weather Playlists"],
     }
 
     with patch(
@@ -79,6 +79,40 @@ async def test_build_items_date(hass: HomeAssistant) -> None:
 
         exp_type = "date_playlist"
         exp_title = "Date Playlists"
+
+        payload = {
+            "media_content_type": exp_type,
+            "media_content_id": exp_type,
+        }
+
+        media: BrowseMedia = build_item_response(
+            hass, spotify_mock, user, payload, can_play_artist=can_play_artist
+        )
+
+        assert media
+        assert media.title == exp_title
+        assert media.media_content_type == f"spotify://{exp_type}"
+        assert media.media_content_id == exp_type
+        assert media.media_class == "directory"
+
+
+async def test_build_items_weather(hass: HomeAssistant) -> None:
+    """Test browse media build items response method with weather."""
+    await init_integration(hass, forecast=True)
+
+    with patch(
+        "homeassistant.components.spotify.config_flow.Spotify"
+    ) as spotify_mock, patch(
+        "homeassistant.components.accuweather.AccuWeather._async_get_data"
+    ):
+        user: dict[str, Any] = {"country": "SE"}
+        can_play_artist = True
+
+        assert spotify_mock
+        assert user
+
+        exp_type = "weather_playlist"
+        exp_title = "Weather Playlists"
 
         payload = {
             "media_content_type": exp_type,

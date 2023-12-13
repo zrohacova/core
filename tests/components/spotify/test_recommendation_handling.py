@@ -15,7 +15,63 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
+from tests.components.accuweather import init_integration
+
 SPOTIFY_MOCK_PATH = "homeassistant.components.spotify.config_flow.Spotify"
+
+
+@patch(
+    "homeassistant.components.spotify.recommendation_handling.RecommendationHandler._has_weather_changed"
+)
+async def test_handling_weather_recommendations(
+    mock_has_weather_changed, hass: HomeAssistant
+) -> None:
+    """Test handling weather recommendations."""
+    handler = RecommendationHandler()
+    await init_integration(hass)
+
+    mock_has_weather_changed.return_value = True
+
+    with patch(SPOTIFY_MOCK_PATH) as spotify_mock, patch(
+        SPOTIFY_MOCK_PATH
+    ) as spotify_mock, patch.object(
+        handler,
+        "_get_current_weather_search_string",
+        return_value="Cold Sunny",
+    ):
+        spotify_mock.search.return_value = {
+            "playlists": {
+                "items": [
+                    {"name": "Sunny Day Playlist 1", "id": "playlist_id_1"},
+                    {"name": "Sunny Day Playlist 2", "id": "playlist_id_2"},
+                ]
+            }
+        }
+
+        media, items = handler.handling_weather_recommendations(hass, spotify_mock)
+
+        assert items
+        assert media
+
+        assert len(items) == 2
+
+
+async def test_no_weather_available(hass: HomeAssistant) -> None:
+    """Test handling no setup weather integration."""
+    handler = RecommendationHandler()
+
+    with patch(SPOTIFY_MOCK_PATH) as spotify_mock:
+        spotify_mock.search.return_value = {
+            "playlists": {
+                "items": [
+                    {"name": "Sunny Day Playlist 1", "id": "playlist_id_1"},
+                    {"name": "Sunny Day Playlist 2", "id": "playlist_id_2"},
+                ]
+            }
+        }
+
+        with pytest.raises(HomeAssistantError):
+            handler.handling_weather_recommendations(hass, spotify_mock)
 
 
 async def test_singleton_pattern(hass: HomeAssistant) -> None:
