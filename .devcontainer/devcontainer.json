@@ -2,9 +2,6 @@
   "name": "Home Assistant Dev",
   "context": "..",
   "dockerFile": "../Dockerfile.dev",
-  "mounts": [
-    "source=/Users/salvijazelvyte/Desktop/School/SoftwareEP/frontend,target=/workspaces/frontend,type=bind,consistency=cached"
-  ],
   "postCreateCommand": "script/setup",
   "postStartCommand": "script/bootstrap",
   "containerEnv": { "DEVCONTAINER": "1" },
