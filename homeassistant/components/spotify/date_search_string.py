@@ -12,14 +12,16 @@ from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from .const import NO_HOLIDAY
+from .const import DOMAIN, NO_HOLIDAY
 
 
 class HolidayDateMapper:
     """A class to find the current holiday and the season for a certain country and date. It uses these attributes to create a search string for spotify playlists."""
 
-    def __init__(self) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize of the HolidaySeasonMapper."""
+        self.hass = hass
+        self.update_values()
 
         # Mapping containing the season on given hemisphere during certain months
         self.season_hemisphere_mapping = {
@@ -36,6 +38,13 @@ class HolidayDateMapper:
             11: {"Northern": "Autumn", "Southern": "Spring"},
             12: {"Northern": "Winter", "Southern": "Summer"},
         }
+
+    def update_values(self):
+        """Update timeframe values."""
+        # Default to 7 if not set
+        self.timeframe = self.hass.data[DOMAIN].get("timeframe", 7)
+        # Default to "days" if not set
+        self.time_unit = self.hass.data[DOMAIN].get("time_unit", "days")
 
     def get_season(self, country_code: str, current_date: date):
         """Get the season in the given country on the given date."""
@@ -160,9 +169,11 @@ class HolidayDateMapper:
             )
 
         current_date = dt_util.now().date()
-        week_before_holiday = holiday_start_time - timedelta(weeks=1)
 
-        if week_before_holiday <= current_date <= holiday_end_time:
+        # Calculate the timeframe before the holiday
+        timeframe_before_holiday = holiday_start_time - timedelta(days=self.timeframe)
+
+        if timeframe_before_holiday <= current_date <= holiday_end_time:
             return True
 
         return False

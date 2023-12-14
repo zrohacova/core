@@ -3,15 +3,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+import logging
+from typing import Any, Final
 
 import aiohttp
 import requests
 from spotipy import Spotify, SpotifyException
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.config_entry_oauth2_flow import (
     OAuth2Session,
@@ -21,6 +23,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .browse_media import async_browse_media
 from .const import DOMAIN, LOGGER, SPOTIFY_SCOPES
+from .date_search_string import HolidayDateMapper
 from .util import (
     is_spotify_media_type,
     resolve_spotify_media_type,
@@ -28,7 +31,17 @@ from .util import (
 )
 
 PLATFORMS = [Platform.MEDIA_PLAYER]
+SERVICE_SET_TIMEFRAME: Final = "set_timeframe"
 
+# Schema for set timeframe
+SET_TIMEFRAME_SCHEMA = vol.Schema(
+    {
+        vol.Required("timeframe"): vol.Coerce(int),
+        vol.Required("time_unit"): vol.Coerce(str),
+    }
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 __all__ = [
     "async_browse_media",
@@ -107,10 +120,61 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session=session,
     )
 
+    async def handle_set_timeframe(call: ServiceCall):
+        """Handle the set_timeframe service call."""
+        timeframe = call.data.get("timeframe")
+        time_unit = call.data.get("time_unit")
+
+        # Ensure timeframe is an integer
+        if timeframe is None:
+            _LOGGER.error("Timeframe is not provided or invalid")
+            return
+
+        # Convert weeks and months to days if needed
+        timeframe, time_unit = convert_timeframe(timeframe, time_unit)
+
+        update_timeframe_in_hass_data(timeframe)
+
+        # Update time unit in hass data
+        hass.data[DOMAIN]["time_unit"] = time_unit
+
+        # Update the HolidayDateMapper instance in hass.data
+        update_holiday_mapper(hass)
+
+    def convert_timeframe(timeframe, time_unit):
+        """Convert weeks and months to days if needed."""
+        if time_unit == "weeks":
+            timeframe *= 7
+        elif time_unit == "months":
+            timeframe *= 30
+
+        return timeframe, "days"
+
+    def update_timeframe_in_hass_data(timeframe):
+        """Update timeframe values in hass.data."""
+        if timeframe != hass.data[DOMAIN].get("timeframe"):
+            hass.data[DOMAIN]["timeframe_updated"] = "TRUE"
+
+        hass.data[DOMAIN]["timeframe"] = timeframe
+
+    def update_holiday_mapper(hass: HomeAssistant):
+        """Update the HolidayDateMapper instance in hass.data."""
+        holiday_mapper = hass.data[DOMAIN]["holiday_mapper"]
+        holiday_mapper.update_values()
+
+    # Create an instance of HolidayDateMapper with hass instance
+    hass.data[DOMAIN]["holiday_mapper"] = HolidayDateMapper(hass)
+
+    # Register the service set timeframe
+    hass.services.async_register(
+        DOMAIN, SERVICE_SET_TIMEFRAME, handle_set_timeframe, schema=SET_TIMEFRAME_SCHEMA
+    )
+
     if not set(session.token["scope"].split(" ")).issuperset(SPOTIFY_SCOPES):
         raise ConfigEntryAuthFailed
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
     return True
 
 

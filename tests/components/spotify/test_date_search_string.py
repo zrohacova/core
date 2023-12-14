@@ -1,6 +1,6 @@
 """Module for testing the HolidayDateMapper functionality in the Spotify integration."""
 import datetime as dt
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -21,12 +21,13 @@ ANOTHER_HOLIDAY_TITLE = "another holiday title"
 @pytest.fixture
 def holiday_date_mapper():
     """Fixture for initializing the HolidayDateMapper."""
-    return HolidayDateMapper()
+    return HolidayDateMapper(hass=MagicMock())
 
 
-def test_init_valid_season_mapper(holiday_date_mapper: HolidayDateMapper) -> None:
+def test_init_valid_date_mapper(holiday_date_mapper: HolidayDateMapper) -> None:
     """Test initialization of HolidayDateMapper."""
     assert holiday_date_mapper.season_hemisphere_mapping is not None
+    assert holiday_date_mapper.timeframe is not None
 
 
 @patch("homeassistant.components.spotify.date_search_string.geocoder.osm")
@@ -204,6 +205,8 @@ def test_is_holiday_in_range(
     # set today to 28 nov
     mock_today.return_value = datetime(2023, 11, 28, 12, 0, 0)
 
+    holiday_date_mapper.timeframe = 7
+
     holiday_title = "some holiday"
     calendar_state = State("calendar.some_calendar", "state")
 
@@ -244,6 +247,8 @@ def test_get_current_holiday(
     mock_translate.return_value = "a_holiday_calendar"
     mock_today.return_value = datetime(2023, 11, 9, 12, 0, 0)
 
+    holiday_date_mapper.timeframe = 7
+
     mock_hass = MagicMock()
     calendar_holiday_state = MagicMock()
 
@@ -277,6 +282,8 @@ def test_get_next_holiday(
     mock_translate.return_value = "holiday"
 
     mock_hass = MagicMock()
+
+    holiday_date_mapper.timeframe = 7
 
     # mock two holidays
     mock_calendar_holiday_state_1 = MagicMock()
@@ -400,3 +407,30 @@ def test_search_string_date_no_calendar_configured(
         match="No calendar integration found. Please set up a calendar integration.",
     ):
         holiday_date_mapper.search_string_date(calendar_entity_ids, hass, user)
+
+
+@patch("homeassistant.components.spotify.date_search_string.dt_util.now")
+def test_timeframe_attribute(
+    mock_today, holiday_date_mapper: HolidayDateMapper
+) -> None:
+    """Test the timeframe attribute."""
+    holiday_date_mapper.timeframe = 7
+
+    # Mock the current date to be 2023-11-28
+    mock_today.return_value = datetime(2023, 11, 28, 12, 0, 0)
+
+    # Mock a holiday that starts in 6 days and ends in 8 days
+    holiday_start_time = mock_today.return_value.date() + timedelta(days=6)
+    holiday_end_time = mock_today.return_value.date() + timedelta(days=8)
+    holiday_title = "Test Holiday"
+
+    # Mock the calendar_holiday_state
+    calendar_holiday_state = State(entity_id="calendar.test", state="on")
+
+    # Check if the holiday is in range
+    result = holiday_date_mapper.is_holiday_in_range(
+        calendar_holiday_state, holiday_end_time, holiday_start_time, holiday_title
+    )
+
+    # The holiday should be in range because it starts in 6 days, which is within the timeframe of 7 days
+    assert result is True

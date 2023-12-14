@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 from homeassistant.components.media_player.browse_media import BrowseMedia
 from homeassistant.components.spotify.browse_media import build_item_response
+from homeassistant.components.spotify.const import DOMAIN
 from homeassistant.components.spotify.recommendation_handling import (
     RecommendationHandler,
 )
@@ -73,6 +74,7 @@ async def test_build_items_date(hass: HomeAssistant) -> None:
     ):
         user: dict[str, Any] = {"country": "SE"}
         can_play_artist = True
+        hass.data[DOMAIN] = {"spotify": {"timeframe": 7}}
 
         assert spotify_mock
         assert user

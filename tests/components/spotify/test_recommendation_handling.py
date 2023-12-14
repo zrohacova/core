@@ -1,15 +1,16 @@
 """Test Spotify Recommendation Handler."""
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from spotipy.exceptions import SpotifyException
 
-from homeassistant.components.spotify.const import NO_HOLIDAY
+from homeassistant.components.spotify.const import DOMAIN, NO_HOLIDAY
 from homeassistant.components.spotify.recommendation_handling import (
     BROWSE_LIMIT,
     RecommendationHandler,
+    RecommendedPlaylistDomains,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -74,7 +75,7 @@ async def test_no_weather_available(hass: HomeAssistant) -> None:
             handler.handling_weather_recommendations(hass, spotify_mock)
 
 
-async def test_singleton_pattern(hass: HomeAssistant) -> None:
+async def test_singleton_pattern() -> None:
     """Test that the RecommendationHandler follows the singleton pattern."""
     handler1 = RecommendationHandler()
     handler2 = RecommendationHandler()
@@ -112,6 +113,7 @@ async def test_generate_date_search_string(
     mock_weekday.return_value = "Sunday"
 
     handler = RecommendationHandler()
+    hass.data[DOMAIN] = {"spotify": {"timeframe": 7}}
 
     with patch("homeassistant.util.dt.now") as mock_now, patch(
         "homeassistant.components.spotify.recommendation_handling.Spotify"
@@ -159,6 +161,7 @@ async def test_generate_search_string_error_propagation(
     mock_weekday.return_value = "Sunday"
 
     handler = RecommendationHandler()
+    hass.data[DOMAIN] = {"spotify": {"timeframe": 7}}
 
     with pytest.raises(ValueError):
         handler._generate_date_search_string(hass, None)
@@ -168,8 +171,10 @@ async def test_is_new_date(hass: HomeAssistant) -> None:
     """Test the check for a new date."""
     handler = RecommendationHandler()
     handler._last_api_call_date = "2020-12-24"
-    assert handler._is_new_date("2020-12-25")
-    assert not handler._is_new_date("2020-12-24")
+    hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
+
+    assert handler._is_new_date(hass, "2020-12-25")
+    assert not handler._is_new_date(hass, "2020-12-24")
 
 
 async def test_fetch_spotify_playlists(hass: HomeAssistant) -> None:
@@ -200,6 +205,8 @@ async def test_handling_date_recommendations_with_mocked_date(
         return_value=playlist_name,
     ):
         handler = RecommendationHandler()
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
+
         spotify_mock.search.return_value = {
             "playlists": {"items": [{"name": playlist_name}]}
         }
@@ -225,6 +232,7 @@ async def test_handling_date_recommendations_empty_playlist(
 
         handler = RecommendationHandler()
         handler._last_api_call_date = ""
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError) as excinfo:
             _, _ = handler.handling_date_recommendations(
@@ -244,6 +252,7 @@ async def test_handling_date_recommendations_api_error(hass: HomeAssistant) -> N
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2020-06-01"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         try:
             _, _ = handler.handling_date_recommendations(
@@ -266,10 +275,12 @@ async def test_handling_date_recommendations_caching(hass: HomeAssistant) -> Non
         }
 
         handler = RecommendationHandler()
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         handler.handling_date_recommendations(
             spotify_mock, hass, user={"country": "SE"}
         )
+
         spotify_mock.search.assert_called_once()
 
         spotify_mock.search.reset_mock()
@@ -291,6 +302,7 @@ async def test_handling_api_unexpected_response(hass: HomeAssistant) -> None:
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError):
             _, _ = handler.handling_date_recommendations(
@@ -309,6 +321,8 @@ async def test_handling_different_dates(hass: HomeAssistant) -> None:
     ):
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-19"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
+
         spotify_mock.search.return_value = {
             "playlists": {"items": [{"name": playlist_name}]}
         }
@@ -334,6 +348,7 @@ async def test_handling_malformed_data_missing_key(hass: HomeAssistant) -> None:
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError):
             _, _ = handler.handling_date_recommendations(
@@ -354,6 +369,7 @@ async def test_handling_api_rate_limit_and_downtime(hass: HomeAssistant) -> None
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError):
             _, _ = handler.handling_date_recommendations(
@@ -374,8 +390,103 @@ async def test_handling_excess_items_from_spotify(hass: HomeAssistant) -> None:
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         _, items = handler.handling_date_recommendations(
             spotify_mock, hass, user={"country": "SE"}
         )
         assert len(items) <= BROWSE_LIMIT
+
+
+@patch("homeassistant.components.spotify.recommendation_handling.er.async_get")
+def test_get_entity_ids(mock_async_get, hass: HomeAssistant) -> None:
+    """Test entity id's of given domain is returned."""
+
+    mock_entity_reg = MagicMock()
+    mock_async_get.return_value = mock_entity_reg
+
+    # test with one calendar entity
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.CALENDAR.value
+        )
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+
+    mock_async_get.assert_called_once_with(hass)
+    mock_entity_reg.entities.values.assert_called_once()
+    assert len(entity_ids) == 1
+
+    # test with two entities with matching domains
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.CALENDAR.value
+        ),
+        MagicMock(
+            entity_id="another_entity_id",
+            domain=RecommendedPlaylistDomains.CALENDAR.value,
+        ),
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    assert len(entity_ids) == 2
+
+    # test with one matching entity domain, and two other entities (one of a non-matching domain and one with no domain)
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.CALENDAR.value
+        ),
+        MagicMock(
+            entity_id="another_entity_id",
+            domain=RecommendedPlaylistDomains.WEATHER.value,
+        ),
+        MagicMock(entity_id="a_third_entity_id"),
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    assert len(entity_ids) == 1
+
+    # test with no matching entity domain
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.WEATHER.value
+        )
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    assert len(entity_ids) == 0
+
+    # test with one weather entity
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.WEATHER.value
+        )
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.WEATHER
+    )
+    assert len(entity_ids) == 1
+
+    # test with no entities
+
+    mock_entity_reg.entities.values.return_value = []
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.WEATHER
+    )
+    assert len(entity_ids) == 0
