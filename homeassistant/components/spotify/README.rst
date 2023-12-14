@@ -57,4 +57,24 @@ In order to fetch the holidays of the desired country/countries, Google Calendar
 3. Select the regions of interest
 4. Configure Google Calendar in HomeAssistant by following this tutorial: https://www.youtube.com/watch?v=r2WbpxKDOD4 from 1:30 - 6:40
 
+=============================
+Set Timeframe for Date Playlists
+=============================
+
+The Spotify integration now includes a feature where users can set a timeframe for holiday playlists. This allows you to control when holiday-themed playlists should start displaying in Home Assistant.
+
+How to Set Timeframe:
+^^^^^^^^^^^^^^
+1. In your Home Assistant, navigate to the Services page.
+2. Locate the Set Timeframe service under the Spotify domain.
+3. Provide the following parameters:
+    timeframe: The number of time units before the upcoming holiday to start showing holiday playlists.
+    time_unit: The unit of time for the timeframe (e.g., days, weeks, months).
+4. Click on the Call Service button to apply the changes.
+
+Note:
+^^^^^^^^^^^^^^
+The "timeframe" parameter represents the duration before the upcoming holiday.
+You can choose the time unit (days, weeks, months) based on your preference.
+
 Done!
