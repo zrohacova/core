@@ -27,15 +27,15 @@
   "services": {
     "set_timeframe": {
       "name": "Set Timeframe",
-      "description": "Set the timeframe for the Spotify holiday playlist feature.",
+      "description": "Set the timeframe for the Spotify holiday playlist feature. This defines when holiday playlists should start displaying before the upcoming holiday.",
       "fields": {
         "timeframe": {
           "name": "Timeframe",
-          "description": "The number of time units before a holiday to start showing holiday playlists."
+          "description": "The number of time units before the upcoming holiday to start showing holiday playlists. For example, setting this to '7' with the 'time_unit' as 'days' would display holiday playlists a week before the holiday."
         },
         "time_unit": {
           "name": "Time Unit",
-          "description": "The unit of time for the timeframe."
+          "description": "The unit of time for the timeframe. Choose from 'days', 'weeks', 'months', etc. This determines the time duration specified in the 'timeframe' field."
         }
       }
     }
