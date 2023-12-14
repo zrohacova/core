@@ -58,37 +58,20 @@ In order to fetch the holidays of the desired country/countries, Google Calendar
 4. Configure Google Calendar in HomeAssistant by following this tutorial: https://www.youtube.com/watch?v=r2WbpxKDOD4 from 1:30 - 6:40
 
 =============================
-Setting Up Core with Customized Icons
+Set Timeframe for Date Playlists
 =============================
 
-To integrate the new icons introduced in the Spotify integration, it's crucial to set up the Core changes. Follow the instructions below:
+The Spotify integration now includes a feature where users can set a timeframe for holiday playlists. This allows you to control when holiday-themed playlists should start displaying in Home Assistant.
 
-1. Clone the core repository with the customized icons:
-   ```bash
-   git clone -b change_gui_icons https://github.com/zrohacova/core.git
-   ```
-2. Navigate to the core directory:
-   ```bash
-   cd core
-   ```
-3. Follow the instructions for setting up the Home Assistant development environment outlined in the official documentation: https://developers.home-assistant.io/docs/development_environment
-
-=============================
-Setting Up Frontend with Customized Icons
-=============================
-
-To enjoy the new icons introduced in the Spotify integration, it's essential to set up the Frontend changes. Follow the instructions below:
-
-1. Clone the frontend repository with the customized icons:
-   ```bash
-   git clone -b gui_icon_change https://github.com/zrohacova/frontend.git
-   ```
-2. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-3. Follow the instructions for setting up the frontend development environment outlined in the official documentation: https://developers.home-assistant.io/docs/frontend/development/
-4. Once the development environment is set up, you can build and test the changes in your Home Assistant instance.
-5. Make sure to restart Home Assistant to see the updated frontend.
+- How to Set Timeframe:
+1. In your Home Assistant, navigate to the Services page.
+2. Locate the Set Timeframe service under the Spotify domain.
+3. Provide the following parameters:
+    timeframe: The number of time units before the upcoming holiday to start showing holiday playlists.
+    time_unit: The unit of time for the timeframe (e.g., days, weeks, months).
+4. Click on the Call Service button to apply the changes.
+- Note:
+    The "timeframe" parameter represents the duration before the upcoming holiday.
+    You can choose the time unit (days, weeks, months) based on your preference.
 
 Done!
