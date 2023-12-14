@@ -70,6 +70,7 @@ The Spotify integration now includes a feature where users can set a timeframe f
     timeframe: The number of time units before the upcoming holiday to start showing holiday playlists.
     time_unit: The unit of time for the timeframe (e.g., days, weeks, months).
 4. Click on the Call Service button to apply the changes.
+
 - Note:
     The "timeframe" parameter represents the duration before the upcoming holiday.
     You can choose the time unit (days, weeks, months) based on your preference.
