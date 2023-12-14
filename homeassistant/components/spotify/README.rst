@@ -64,13 +64,13 @@ Setting Up Core with Customized Icons
 To integrate the new icons introduced in the Spotify integration, it's crucial to set up the Core changes. Follow the instructions below:
 
 1. Clone the core repository with the customized icons:
-   ``
+   ```bash
    git clone -b change_gui_icons https://github.com/zrohacova/core.git
-   ``
+   ```
 2. Navigate to the core directory:
-   ``
+   ```bash
    cd core
-   ``
+   ```
 3. Follow the instructions for setting up the Home Assistant development environment outlined in the official documentation: https://developers.home-assistant.io/docs/development_environment
 
 =============================
@@ -80,13 +80,13 @@ Setting Up Frontend with Customized Icons
 To enjoy the new icons introduced in the Spotify integration, it's essential to set up the Frontend changes. Follow the instructions below:
 
 1. Clone the frontend repository with the customized icons:
-   ``
+   ```bash
    git clone -b gui_icon_change https://github.com/zrohacova/frontend.git
-   ``
+   ```
 2. Navigate to the frontend directory:
-   ``
+   ```bash
    cd frontend
-   ``
+   ```
 3. Follow the instructions for setting up the frontend development environment outlined in the official documentation: https://developers.home-assistant.io/docs/frontend/development/
 4. Once the development environment is set up, you can build and test the changes in your Home Assistant instance.
 5. Make sure to restart Home Assistant to see the updated frontend.
