@@ -106,14 +106,6 @@ async def async_setup_entry(
     except ApiException as err:
         raise PlatformNotReady(str(err)) from err
 
-    entity_registry = er.async_get(hass)
-    registry_entries = er.async_entries_for_config_entry(
-        entity_registry, config_entry.entry_id
-    )
-    entity_entry_map = {
-        entity_entry.unique_id: entity_entry for entity_entry in registry_entries
-    }
-
     # Yaml configuration may override objects from the API
     calendars = await hass.async_add_executor_job(
         load_config, hass.config.path(YAML_DEVICES)
@@ -131,105 +123,23 @@ async def async_setup_entry(
             new_calendars.append(calendar_info)
         # Yaml calendar config may map one calendar to multiple entities
         # with extra options like offsets or search criteria.
-        num_entities = len(calendar_info[CONF_ENTITIES])
-        for data in calendar_info[CONF_ENTITIES]:
-            entity_enabled = data.get(CONF_TRACK, True)
-            if not entity_enabled:
-                _LOGGER.warning(
-                    "The 'track' option in google_calendars.yaml has been deprecated."
-                    " The setting has been imported to the UI, and should now be"
-                    " removed from google_calendars.yaml"
-                )
-            entity_name = data[CONF_DEVICE_ID]
-            # The unique id is based on the config entry and calendar id since
-            # multiple accounts can have a common calendar id
-            # (e.g. `en.usa#holiday@group.v.calendar.google.com`).
-            # When using google_calendars.yaml with multiple entities for a
-            # single calendar, we have no way to set a unique id.
-            if num_entities > 1:
-                unique_id = None
-            else:
-                unique_id = f"{config_entry.unique_id}-{calendar_id}"
-            # Migrate to new unique_id format which supports
-            # multiple config entries as of 2022.7
-            for old_unique_id in (calendar_id, f"{calendar_id}-{entity_name}"):
-                if not (entity_entry := entity_entry_map.get(old_unique_id)):
-                    continue
-                if unique_id:
-                    _LOGGER.debug(
-                        "Migrating unique_id for %s from %s to %s",
-                        entity_entry.entity_id,
-                        old_unique_id,
-                        unique_id,
-                    )
-                    entity_registry.async_update_entity(
-                        entity_entry.entity_id, new_unique_id=unique_id
-                    )
-                else:
-                    _LOGGER.debug(
-                        "Removing entity registry entry for %s from %s",
-                        entity_entry.entity_id,
-                        old_unique_id,
-                    )
-                    entity_registry.async_remove(
-                        entity_entry.entity_id,
-                    )
-            coordinator: CalendarSyncUpdateCoordinator | CalendarQueryUpdateCoordinator
-            # Prefer calendar sync down of resources when possible. However,
-            # sync does not work for search. Also free-busy calendars denormalize
-            # recurring events as individual events which is not efficient for sync
-            support_write = (
-                calendar_item.access_role.is_writer
-                and get_feature_access(hass, config_entry) is FeatureAccess.read_write
+        entities.extend(
+            get_calendar_entities(
+                calendar_item,
+                calendar_info,
+                config_entry,
+                calendar_id,
+                hass,
+                calendar_service,
+                store,
             )
-            if (
-                search := data.get(CONF_SEARCH)
-            ) or calendar_item.access_role == AccessRole.FREE_BUSY_READER:
-                coordinator = CalendarQueryUpdateCoordinator(
-                    hass,
-                    calendar_service,
-                    data[CONF_NAME],
-                    calendar_id,
-                    search,
-                )
-                support_write = False
-            else:
-                request_template = SyncEventsRequest(
-                    calendar_id=calendar_id,
-                    start_time=dt_util.now() + SYNC_EVENT_MIN_TIME,
-                )
-                sync = CalendarEventSyncManager(
-                    calendar_service,
-                    store=ScopedCalendarStore(store, unique_id or entity_name),
-                    request_template=request_template,
-                )
-                coordinator = CalendarSyncUpdateCoordinator(
-                    hass,
-                    sync,
-                    data[CONF_NAME],
-                )
-            entities.append(
-                GoogleCalendarEntity(
-                    coordinator,
-                    calendar_id,
-                    data,
-                    generate_entity_id(ENTITY_ID_FORMAT, entity_name, hass=hass),
-                    unique_id,
-                    entity_enabled,
-                    support_write,
-                )
-            )
-
+        )
     async_add_entities(entities)
 
     if calendars and new_calendars:
-
-        def append_calendars_to_config() -> None:
-            path = hass.config.path(YAML_DEVICES)
-            for calendar in new_calendars:
-                update_config(path, calendar)
-
-        await hass.async_add_executor_job(append_calendars_to_config)
+        await hass.async_add_executor_job(
+            append_calendars_to_config, hass, new_calendars
+        )
 
     platform = entity_platform.async_get_current_platform()
     if (
@@ -241,6 +151,133 @@ async def async_setup_entry(
             CREATE_EVENT_SCHEMA,
             async_create_event,
         )
+
+
+def get_calendar_entities(
+    calendar_item: Any,
+    calendar_info: Any,
+    config_entry: ConfigEntry,
+    calendar_id: str,
+    hass: HomeAssistant,
+    calendar_service: GoogleCalendarService,
+    store: Any,
+) -> list:
+    """Return all entities mapped to the given calendar_info."""
+    entities = []
+    num_entities = len(calendar_info[CONF_ENTITIES])
+    for data in calendar_info[CONF_ENTITIES]:
+        entity_enabled = data.get(CONF_TRACK, True)
+        if not entity_enabled:
+            _LOGGER.warning(
+                "The 'track' option in google_calendars.yaml has been deprecated."
+                " The setting has been imported to the UI, and should now be"
+                " removed from google_calendars.yaml"
+            )
+        entity_name = data[CONF_DEVICE_ID]
+        # The unique id is based on the config entry and calendar id since
+        # multiple accounts can have a common calendar id
+        # (e.g. `en.usa#holiday@group.v.calendar.google.com`).
+        # When using google_calendars.yaml with multiple entities for a
+        # single calendar, we have no way to set a unique id.
+        unique_id = (
+            None if num_entities > 1 else f"{config_entry.unique_id}-{calendar_id}"
+        )
+        migrate_to_new_unique_id(
+            hass, config_entry, unique_id, calendar_id, entity_name
+        )
+
+        coordinator: CalendarSyncUpdateCoordinator | CalendarQueryUpdateCoordinator
+        # Prefer calendar sync down of resources when possible. However,
+        # sync does not work for search. Also free-busy calendars denormalize
+        # recurring events as individual events which is not efficient for sync
+        support_write = (
+            calendar_item.access_role.is_writer
+            and get_feature_access(hass, config_entry) is FeatureAccess.read_write
+        )
+        if (
+            search := data.get(CONF_SEARCH)
+        ) or calendar_item.access_role == AccessRole.FREE_BUSY_READER:
+            coordinator = CalendarQueryUpdateCoordinator(
+                hass,
+                calendar_service,
+                data[CONF_NAME],
+                calendar_id,
+                search,
+            )
+            support_write = False
+        else:
+            request_template = SyncEventsRequest(
+                calendar_id=calendar_id,
+                start_time=dt_util.now() + SYNC_EVENT_MIN_TIME,
+            )
+            sync = CalendarEventSyncManager(
+                calendar_service,
+                store=ScopedCalendarStore(store, unique_id or entity_name),
+                request_template=request_template,
+            )
+            coordinator = CalendarSyncUpdateCoordinator(
+                hass,
+                sync,
+                data[CONF_NAME],
+            )
+        entities.append(
+            GoogleCalendarEntity(
+                coordinator,
+                calendar_id,
+                data,
+                generate_entity_id(ENTITY_ID_FORMAT, entity_name, hass=hass),
+                unique_id,
+                entity_enabled,
+                support_write,
+            )
+        )
+    return entities
+
+
+def append_calendars_to_config(hass: HomeAssistant, new_calendars: list) -> None:
+    """Append the path to every calendar to config."""
+    path = hass.config.path(YAML_DEVICES)
+    for calendar in new_calendars:
+        update_config(path, calendar)
+
+
+def migrate_to_new_unique_id(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    unique_id: str | None,
+    calendar_id: str,
+    entity_name: str,
+) -> None:
+    """Migrate to new unique_id format which supports multiple config entries as of 2022.7."""
+    entity_registry = er.async_get(hass)
+    registry_entries = er.async_entries_for_config_entry(
+        entity_registry, config_entry.entry_id
+    )
+    entity_entry_map = {
+        entity_entry.unique_id: entity_entry for entity_entry in registry_entries
+    }
+    for old_unique_id in (calendar_id, f"{calendar_id}-{entity_name}"):
+        if not (entity_entry := entity_entry_map.get(old_unique_id)):
+            continue
+        if unique_id:
+            _LOGGER.debug(
+                "Migrating unique_id for %s from %s to %s",
+                entity_entry.entity_id,
+                old_unique_id,
+                unique_id,
+            )
+            entity_registry.async_update_entity(
+                entity_entry.entity_id, new_unique_id=unique_id
+            )
+        else:
+            _LOGGER.debug(
+                "Removing entity registry entry for %s from %s",
+                entity_entry.entity_id,
+                old_unique_id,
+            )
+            entity_registry.async_remove(
+                entity_entry.entity_id,
+            )
 
 
 class CalendarSyncUpdateCoordinator(DataUpdateCoordinator[Timeline]):

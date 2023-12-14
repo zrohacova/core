@@ -397,7 +397,7 @@ def _build_item_browse_media(
     if media_content_type == str(BrowsableMedia.DATE_PLAYLIST):
         extract_items = {
             media_content_type: RecommendationHandler().handling_date_recommendations(
-                spotify
+                spotify, hass, user
             )
         }
 

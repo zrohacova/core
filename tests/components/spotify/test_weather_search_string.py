@@ -147,7 +147,7 @@ def test_map_weather_to_playlists_fahrenheit_temperature_unit_high(
     """Test mapping weather conditions to search string with Fahrenheit temperature unit (high)."""
     search_string = mapper.map_weather_to_playlists(68, "sunny", "fahrenheit")
     # Expected for 'warm' 'sunny'
-    assert search_string == "Sunny Day Play"
+    assert search_string == "Sunny"
 
 
 def test_map_weather_to_playlists_fahrenheit_temperature_unit_low(
@@ -156,4 +156,4 @@ def test_map_weather_to_playlists_fahrenheit_temperature_unit_low(
     """Test mapping weather conditions to search string with Fahrenheit temperature unit (low)."""
     search_string = mapper.map_weather_to_playlists(21, "snowy", "fahrenheit")
     # Expected for 'cold' 'snowy'
-    assert search_string == "Blizzard Ballads"
+    assert search_string == "Snowy"
