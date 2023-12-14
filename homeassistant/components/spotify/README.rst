@@ -1,7 +1,7 @@
 =============================
 Spotify
 =============================
-The Spotify integration lets you control your Spotify account playback and browse the Spotify media library from Home Assistant.
+The Spotify integration lets you control your Spotify account playback and browse the Spotify media library from Home Assistant. To set it up, follow the instructions on https://www.home-assistant.io/integrations/spotify/.
 
 For the case of DAT265 / DIT588 Software evolution project, the Spotify integration is extended with a feature that shows recommended playlists based on the current weather as well as recommended playlists based on the current date. You get weather-based playlists by pressing the weather icon in the media library and you get date-based playlists by pressing the calendar icon in the media library. To make this work, you have to set up some integrations. It is described step by step below for each feature.
 
