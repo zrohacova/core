@@ -10,6 +10,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from .const import DOMAIN
 from .date_search_string import HolidayDateMapper
 from .weather_search_string import WeatherPlaylistMapper
 
@@ -140,7 +141,8 @@ class RecommendationHandler:
             current_date = dt_util.now().date().isoformat()
 
             # Fetch playlists if the date has changed since the last API call or issue with previous API call
-            if self._is_new_date(current_date):
+            if self._is_new_date(hass, current_date):
+                hass.data[DOMAIN]["timeframe_updated"] = "FALSE"
                 return self._fetch_spotify_playlists(
                     spotify, current_date_search_string, current_date
                 )
@@ -168,13 +170,16 @@ class RecommendationHandler:
             hass, RecommendedPlaylistDomains.CALENDAR
         )
 
-        return HolidayDateMapper().search_string_date(calendar_entity_ids, hass, user)
+        return HolidayDateMapper(hass).search_string_date(
+            calendar_entity_ids, hass, user
+        )
 
-    def _is_new_date(self, current_date: str) -> bool:
+    def _is_new_date(self, hass: HomeAssistant, current_date: str) -> bool:
         """Check if the current date is different from the last API call date or issue with previous API call."""
         return (
             dt_util.parse_date(self._last_api_call_date) is None
             or self._last_api_call_date != current_date
+            or hass.data[DOMAIN].get("timeframe_updated") == "TRUE"
         )
 
     def _fetch_spotify_playlists(

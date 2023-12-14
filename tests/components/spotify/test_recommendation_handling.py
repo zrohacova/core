@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from spotipy.exceptions import SpotifyException
 
-from homeassistant.components.spotify.const import NO_HOLIDAY
+from homeassistant.components.spotify.const import DOMAIN, NO_HOLIDAY
 from homeassistant.components.spotify.recommendation_handling import (
     BROWSE_LIMIT,
     RecommendationHandler,
@@ -113,6 +113,7 @@ async def test_generate_date_search_string(
     mock_weekday.return_value = "Sunday"
 
     handler = RecommendationHandler()
+    hass.data[DOMAIN] = {"spotify": {"timeframe": 7}}
 
     with patch("homeassistant.util.dt.now") as mock_now, patch(
         "homeassistant.components.spotify.recommendation_handling.Spotify"
@@ -160,6 +161,7 @@ async def test_generate_search_string_error_propagation(
     mock_weekday.return_value = "Sunday"
 
     handler = RecommendationHandler()
+    hass.data[DOMAIN] = {"spotify": {"timeframe": 7}}
 
     with pytest.raises(ValueError):
         handler._generate_date_search_string(hass, None)
@@ -169,8 +171,10 @@ async def test_is_new_date(hass: HomeAssistant) -> None:
     """Test the check for a new date."""
     handler = RecommendationHandler()
     handler._last_api_call_date = "2020-12-24"
-    assert handler._is_new_date("2020-12-25")
-    assert not handler._is_new_date("2020-12-24")
+    hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
+
+    assert handler._is_new_date(hass, "2020-12-25")
+    assert not handler._is_new_date(hass, "2020-12-24")
 
 
 async def test_fetch_spotify_playlists(hass: HomeAssistant) -> None:
@@ -201,6 +205,8 @@ async def test_handling_date_recommendations_with_mocked_date(
         return_value=playlist_name,
     ):
         handler = RecommendationHandler()
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
+
         spotify_mock.search.return_value = {
             "playlists": {"items": [{"name": playlist_name}]}
         }
@@ -226,6 +232,7 @@ async def test_handling_date_recommendations_empty_playlist(
 
         handler = RecommendationHandler()
         handler._last_api_call_date = ""
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError) as excinfo:
             _, _ = handler.handling_date_recommendations(
@@ -245,6 +252,7 @@ async def test_handling_date_recommendations_api_error(hass: HomeAssistant) -> N
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2020-06-01"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         try:
             _, _ = handler.handling_date_recommendations(
@@ -267,10 +275,12 @@ async def test_handling_date_recommendations_caching(hass: HomeAssistant) -> Non
         }
 
         handler = RecommendationHandler()
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         handler.handling_date_recommendations(
             spotify_mock, hass, user={"country": "SE"}
         )
+
         spotify_mock.search.assert_called_once()
 
         spotify_mock.search.reset_mock()
@@ -292,6 +302,7 @@ async def test_handling_api_unexpected_response(hass: HomeAssistant) -> None:
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError):
             _, _ = handler.handling_date_recommendations(
@@ -310,6 +321,8 @@ async def test_handling_different_dates(hass: HomeAssistant) -> None:
     ):
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-19"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
+
         spotify_mock.search.return_value = {
             "playlists": {"items": [{"name": playlist_name}]}
         }
@@ -335,6 +348,7 @@ async def test_handling_malformed_data_missing_key(hass: HomeAssistant) -> None:
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError):
             _, _ = handler.handling_date_recommendations(
@@ -355,6 +369,7 @@ async def test_handling_api_rate_limit_and_downtime(hass: HomeAssistant) -> None
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         with pytest.raises(HomeAssistantError):
             _, _ = handler.handling_date_recommendations(
@@ -375,6 +390,7 @@ async def test_handling_excess_items_from_spotify(hass: HomeAssistant) -> None:
 
         handler = RecommendationHandler()
         handler._last_api_call_date = "2023-11-20"
+        hass.data[DOMAIN] = {"spotify": {"timeframe_updated": "FALSE"}}
 
         _, items = handler.handling_date_recommendations(
             spotify_mock, hass, user={"country": "SE"}
