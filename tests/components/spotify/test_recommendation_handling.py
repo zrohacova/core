@@ -1,7 +1,7 @@
 """Test Spotify Recommendation Handler."""
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from spotipy.exceptions import SpotifyException
@@ -10,6 +10,7 @@ from homeassistant.components.spotify.const import NO_HOLIDAY
 from homeassistant.components.spotify.recommendation_handling import (
     BROWSE_LIMIT,
     RecommendationHandler,
+    RecommendedPlaylistDomains,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -74,7 +75,7 @@ async def test_no_weather_available(hass: HomeAssistant) -> None:
             handler.handling_weather_recommendations(hass, spotify_mock)
 
 
-async def test_singleton_pattern(hass: HomeAssistant) -> None:
+async def test_singleton_pattern() -> None:
     """Test that the RecommendationHandler follows the singleton pattern."""
     handler1 = RecommendationHandler()
     handler2 = RecommendationHandler()
@@ -379,3 +380,97 @@ async def test_handling_excess_items_from_spotify(hass: HomeAssistant) -> None:
             spotify_mock, hass, user={"country": "SE"}
         )
         assert len(items) <= BROWSE_LIMIT
+
+
+@patch("homeassistant.components.spotify.recommendation_handling.er.async_get")
+def test_get_entity_ids(mock_async_get, hass: HomeAssistant) -> None:
+    """Test entity id's of given domain is returned."""
+
+    mock_entity_reg = MagicMock()
+    mock_async_get.return_value = mock_entity_reg
+
+    # test with one calendar entity
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.CALENDAR.value
+        )
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+
+    mock_async_get.assert_called_once_with(hass)
+    mock_entity_reg.entities.values.assert_called_once()
+    assert len(entity_ids) == 1
+
+    # test with two entities with matching domains
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.CALENDAR.value
+        ),
+        MagicMock(
+            entity_id="another_entity_id",
+            domain=RecommendedPlaylistDomains.CALENDAR.value,
+        ),
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    assert len(entity_ids) == 2
+
+    # test with one matching entity domain, and two other entities (one of a non-matching domain and one with no domain)
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.CALENDAR.value
+        ),
+        MagicMock(
+            entity_id="another_entity_id",
+            domain=RecommendedPlaylistDomains.WEATHER.value,
+        ),
+        MagicMock(entity_id="a_third_entity_id"),
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    assert len(entity_ids) == 1
+
+    # test with no matching entity domain
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.WEATHER.value
+        )
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.CALENDAR
+    )
+    assert len(entity_ids) == 0
+
+    # test with one weather entity
+
+    mock_entity_reg.entities.values.return_value = [
+        MagicMock(
+            entity_id="an_entity_id", domain=RecommendedPlaylistDomains.WEATHER.value
+        )
+    ]
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.WEATHER
+    )
+    assert len(entity_ids) == 1
+
+    # test with no entities
+
+    mock_entity_reg.entities.values.return_value = []
+
+    entity_ids = RecommendationHandler.get_entity_ids(
+        hass, RecommendedPlaylistDomains.WEATHER
+    )
+    assert len(entity_ids) == 0
