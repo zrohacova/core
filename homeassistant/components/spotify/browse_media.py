@@ -117,11 +117,11 @@ CONTENT_TYPE_MEDIA_CLASS: dict[str, Any] = {
     },
     BrowsableMedia.WEATHER_PLAYLIST: {
         "parent": MediaClass.DIRECTORY,
-        "children": MediaClass.PLAYLIST,
+        "children": MediaClass.WEATHER_PLAYLIST,
     },
     BrowsableMedia.DATE_PLAYLIST: {
         "parent": MediaClass.DIRECTORY,
-        "children": MediaClass.PLAYLIST,
+        "children": MediaClass.DATE_PLAYLIST,
     },
     MediaType.ALBUM: {"parent": MediaClass.ALBUM, "children": MediaClass.TRACK},
     MediaType.ARTIST: {"parent": MediaClass.ARTIST, "children": MediaClass.ALBUM},

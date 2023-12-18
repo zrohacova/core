@@ -88,7 +88,9 @@
             "track": "Track",
             "tvshow": "TV show",
             "url": "URL",
-            "video": "Video"
+            "video": "Video",
+            "weather_playlist": "Weather Playlist",
+            "date_playlist": "Date Playlist"
           }
         },
         "media_duration": {
